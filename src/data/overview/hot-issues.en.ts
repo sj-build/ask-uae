@@ -19,7 +19,7 @@ export const hotIssues: readonly HotIssueData[] = [
   {
     title: '🏗️ Real Estate', titleColor: '#f59e0b', borderColor: '#f59e0b',
     opportunities: [
-      'Dubai 2025 transactions surpassed AED 680B (+30% YoY)',
+      'Dubai 2025 transactions surpassed $185B (+30% YoY)',
       'Population exceeded 4M (up 15% since 2020), with 200K+ annual inflow',
       'Golden Visa 250,000+ issued, strengthening end-user demand',
       'Yields of 5~9% — significantly above London/New York (2~4%)',

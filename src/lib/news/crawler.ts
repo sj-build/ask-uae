@@ -28,7 +28,13 @@ function classifyPriority(publisher: string): NewsItem['priority'] {
   const lowered = publisher.toLowerCase()
   if (lowered.includes('reuters')) return 'reuters'
   if (lowered.includes('bloomberg')) return 'bloomberg'
+  if (lowered.includes('financial times') || lowered.includes('ft.com')) return 'financial_times'
+  if (lowered.includes('wall street journal') || lowered.includes('wsj')) return 'wsj'
+  if (lowered.includes('the national')) return 'the_national'
+  if (lowered.includes('khaleej times')) return 'khaleej_times'
+  if (lowered.includes('arab news')) return 'arab_news'
   if (lowered.includes('gulf news')) return 'gulf_news'
+  if (lowered.includes('wam') || lowered.includes('emirates news agency')) return 'wam'
   return 'other'
 }
 

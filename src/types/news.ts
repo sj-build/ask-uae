@@ -1,5 +1,5 @@
 export type NewsSource = 'google' | 'naver' | 'manual'
-export type NewsPriority = 'reuters' | 'bloomberg' | 'gulf_news' | 'other'
+export type NewsPriority = 'reuters' | 'bloomberg' | 'financial_times' | 'wsj' | 'the_national' | 'khaleej_times' | 'arab_news' | 'gulf_news' | 'wam' | 'other'
 
 export interface NewsItem {
   readonly id: string

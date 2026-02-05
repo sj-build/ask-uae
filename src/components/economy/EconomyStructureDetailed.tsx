@@ -43,8 +43,8 @@ interface VisionTarget {
 const visionTargets: readonly VisionTarget[] = [
   {
     label: 'GDP',
-    current: 'AED 1.78조',
-    target: 'AED 3조',
+    current: '$485B',
+    target: '$817B',
     progress: 59,
     color: '#c8a44e',
   },

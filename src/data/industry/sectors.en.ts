@@ -1,11 +1,24 @@
 import type { Sector } from '@/types/sector'
 
+// Data Sources:
+// - AI: Statista AI Market Forecast UAE (2024)
+// - Data Centers: Arizton UAE Data Center Market Report (2024)
+// - Healthcare: Statista Hospitals UAE, Nexdigm Healthcare Report (2024)
+// - Beauty: Mordor Intelligence UAE Cosmetic Products (2025)
+// - Tourism: UAE Ministry of Economy, WTTC (2024)
+// - Fintech: Mordor Intelligence UAE Fintech (2024)
+// - Real Estate: Dubai Land Department, Abu Dhabi Real Estate (2024)
+// - Energy: IMARC UAE Renewable Energy (2024)
+// - Luxury: IMARC UAE Luxury Goods, Chalhoub Group (2024)
+// - Defense: GlobalData UAE Defense (2025)
+// - Stock Market: ADX, DFM Official Data (2024)
+
 export const sectors: readonly Sector[] = [
   {
     icon: '🤖',
     name: 'AI · Technology · Data Centers',
-    size: 'Market $23.4B (2030E) · DC market $5.1B (2029E)',
-    cagr: 'CAGR 28-35%',
+    size: 'AI $950M (2024) → $4.3B (2030E) · DC $1.3B (2024) → $3.3B (2030E)',
+    cagr: 'AI CAGR 28.5% · DC CAGR 17.6%',
     valueChain: [
       { label: 'Semiconductor/chip imports' },
       { label: 'Data center infrastructure' },
@@ -25,8 +38,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🏥',
     name: 'Healthcare · Biotech',
-    size: 'Market $28.6B (2028E) · Rapid medical tourism growth',
-    cagr: 'CAGR 7-9%',
+    size: 'Hospitals $9.5B (2024) → $13.4B (2029E) · Total healthcare ~$22B',
+    cagr: 'CAGR 6.97%',
     valueChain: [
       { label: 'Pharmaceutical imports/production' },
       { label: 'Hospital/clinic networks' },
@@ -46,8 +59,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '💄',
     name: 'Beauty · Cosmetics · Personal Care',
-    size: 'Market $4.2B (2025E) → $6.8B (2030E)',
-    cagr: 'CAGR 8-10%',
+    size: 'Cosmetics $395M (2025) → $487M (2030E) · Beauty+Personal care $1.9B',
+    cagr: 'CAGR 4.3%',
     valueChain: [
       { label: 'Brand/manufacturing (90%+ imported)' },
       { label: 'Distribution/logistics' },
@@ -67,8 +80,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🎬',
     name: 'Entertainment · Media · Tourism',
-    size: 'Tourism $48B (2024) · Media $7.2B · Gaming $1.8B',
-    cagr: 'CAGR 6-12%',
+    size: 'Tourism $61.3B (2024) · Visitor spending $70B · Dubai 18.7M visitors',
+    cagr: 'CAGR 11%',
     valueChain: [
       { label: 'Content production' },
       { label: 'Streaming/distribution' },
@@ -89,8 +102,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '₿',
     name: 'Fintech · Crypto · Digital Assets',
-    size: 'Crypto volume $30B+ (2024) · Fintech $3.5B (2028E)',
-    cagr: 'CAGR 15-25%',
+    size: 'Fintech $3.0B (2024) → $6.4B (2030E) · Crypto trading $25B+',
+    cagr: 'CAGR 13.8%',
     valueChain: [
       { label: 'Regulation (VARA/ADGM/CBUAE)' },
       { label: 'Infrastructure (blockchain/DC)' },
@@ -111,8 +124,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🏗️',
     name: 'Real Estate · Construction',
-    size: 'Dubai transactions AED 488B (2024) · Abu Dhabi AED 96.2B',
-    cagr: 'Transaction volume +30-40% YoY',
+    size: 'UAE total transactions $243B (2024) · Dubai $207B · Abu Dhabi $21.6B',
+    cagr: 'Transaction volume +36% YoY (Dubai)',
     valueChain: [
       { label: 'Land development/master planning' },
       { label: 'Construction (Samsung Engineering, etc.)' },
@@ -131,8 +144,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '⚡',
     name: 'Energy · Oil & Gas · Renewables',
-    size: 'ADNOC $49.7B revenue · Masdar 50GW RE · Nuclear 5.6GW',
-    cagr: 'RE CAGR 20%+',
+    size: 'Renewables $4.8B (2024) → $12B (2033E) · RE capacity 7.3GW (2025)',
+    cagr: 'RE CAGR 10.8%',
     valueChain: [
       { label: 'Crude oil/gas production' },
       { label: 'Refining/petrochemicals' },
@@ -153,8 +166,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '👗',
     name: 'Fashion · Luxury · Retail',
-    size: 'Luxury $8.5B (2024E) · Retail $70B+ · E-com $10B+',
-    cagr: 'CAGR 5-8%',
+    size: 'Luxury $4.2B (2024) · GCC Luxury $12.8B (UAE 48.6% share)',
+    cagr: 'CAGR 5.5%',
     valueChain: [
       { label: 'Global brand sourcing' },
       { label: 'Local distributor exclusive contracts' },
@@ -175,8 +188,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🦾',
     name: 'Robotics · Space · Defense',
-    size: 'Defense $26B (2025E) · Space $6B+ · Robotics $1.5B',
-    cagr: 'CAGR 10-18%',
+    size: 'Defense budget $23.9B (2025) → $30.2B (2030E) · EDGE exports $2.3B',
+    cagr: 'CAGR 4.7%',
     valueChain: [
       { label: 'R&D (ATRC/TIRA)' },
       { label: 'Defense manufacturing (EDGE)' },

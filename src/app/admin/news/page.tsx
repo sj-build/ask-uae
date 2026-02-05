@@ -72,7 +72,13 @@ function priorityColor(priority: NewsPriority): string {
   const colors: Record<NewsPriority, string> = {
     reuters: 'text-accent-orange',
     bloomberg: 'text-accent-blue',
+    financial_times: 'text-accent-orange',
+    wsj: 'text-accent-orange',
+    the_national: 'text-accent-cyan',
+    khaleej_times: 'text-accent-cyan',
+    arab_news: 'text-accent-cyan',
     gulf_news: 'text-accent-cyan',
+    wam: 'text-accent-green',
     other: 'text-t3',
   }
   return colors[priority]

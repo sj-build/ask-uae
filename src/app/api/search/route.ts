@@ -6,6 +6,14 @@ import type { SearchResponse } from '@/types/search'
 
 export async function POST(request: Request): Promise<NextResponse<SearchResponse>> {
   try {
+    // Check if API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Ask Me 기능을 사용하려면 ANTHROPIC_API_KEY를 .env.local에 설정해주세요.' },
+        { status: 503 }
+      )
+    }
+
     const body: unknown = await request.json()
 
     const parseResult = SearchRequestSchema.safeParse(body)

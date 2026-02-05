@@ -1,11 +1,24 @@
 import type { Sector } from '@/types/sector'
 
+// 데이터 출처:
+// - AI: Statista AI Market Forecast UAE (2024)
+// - 데이터센터: Arizton UAE Data Center Market Report (2024)
+// - 헬스케어: Statista Hospitals UAE, Nexdigm Healthcare Report (2024)
+// - 뷰티: Mordor Intelligence UAE Cosmetic Products (2025)
+// - 관광: UAE Ministry of Economy, WTTC (2024)
+// - 핀테크: Mordor Intelligence UAE Fintech (2024)
+// - 부동산: Dubai Land Department, Abu Dhabi Real Estate (2024)
+// - 에너지: IMARC UAE Renewable Energy (2024)
+// - 럭셔리: IMARC UAE Luxury Goods, Chalhoub Group (2024)
+// - 방위: GlobalData UAE Defense (2025)
+// - 주식시장: ADX, DFM Official Data (2024)
+
 export const sectors: readonly Sector[] = [
   {
     icon: '🤖',
     name: 'AI · 기술 · 데이터센터',
-    size: '시장 $23.4B (2030E) · DC 시장 $5.1B (2029E)',
-    cagr: 'CAGR 28-35%',
+    size: 'AI $950M (2024) → $4.3B (2030E) · DC $1.3B (2024) → $3.3B (2030E)',
+    cagr: 'AI CAGR 28.5% · DC CAGR 17.6%',
     valueChain: [
       { label: '반도체/칩 수입' },
       { label: '데이터센터 인프라' },
@@ -25,8 +38,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🏥',
     name: '헬스케어 · 바이오',
-    size: '시장 $28.6B (2028E) · 의료관광 급성장',
-    cagr: 'CAGR 7-9%',
+    size: '병원 $9.5B (2024) → $13.4B (2029E) · 전체 의료 ~$22B',
+    cagr: 'CAGR 6.97%',
     valueChain: [
       { label: '의약품 수입/생산' },
       { label: '병원/클리닉 네트워크' },
@@ -46,8 +59,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '💄',
     name: '뷰티 · 화장품 · 퍼스널케어',
-    size: '시장 $4.2B (2025E) → $6.8B (2030E)',
-    cagr: 'CAGR 8-10%',
+    size: '화장품 $395M (2025) → $487M (2030E) · 뷰티+개인용품 $1.9B',
+    cagr: 'CAGR 4.3%',
     valueChain: [
       { label: '브랜드/제조 (수입 90%+)' },
       { label: '유통/물류' },
@@ -67,8 +80,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🎬',
     name: '엔터테인먼트 · 미디어 · 관광',
-    size: '관광 $48B (2024) · 미디어 $7.2B · 게이밍 $1.8B',
-    cagr: 'CAGR 6-12%',
+    size: '관광 $61.3B (2024) · 방문객 지출 $70B · Dubai 1,872만명',
+    cagr: 'CAGR 11%',
     valueChain: [
       { label: '콘텐츠 제작' },
       { label: '스트리밍/배급' },
@@ -89,8 +102,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '₿',
     name: '핀테크 · 크립토 · 디지털자산',
-    size: '크립토 거래량 $30B+ (2024) · 핀테크 $3.5B (2028E)',
-    cagr: 'CAGR 15-25%',
+    size: '핀테크 $3.0B (2024) → $6.4B (2030E) · 크립토 거래 $25B+',
+    cagr: 'CAGR 13.8%',
     valueChain: [
       { label: '규제 (VARA/ADGM/CBUAE)' },
       { label: '인프라 (블록체인/DC)' },
@@ -111,8 +124,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🏗️',
     name: '부동산 · 건설',
-    size: 'Dubai 거래 AED 488B (2024) · Abu Dhabi AED 96.2B',
-    cagr: '거래량 +30-40% YoY',
+    size: 'UAE 총 거래 $243B (2024) · Dubai $207B · Abu Dhabi $21.6B',
+    cagr: '거래량 +36% YoY (Dubai)',
     valueChain: [
       { label: '토지 개발/마스터플랜' },
       { label: '건설 (삼성엔지니어링 등)' },
@@ -131,8 +144,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '⚡',
     name: '에너지 · 석유가스 · 재생에너지',
-    size: 'ADNOC $49.7B 매출 · Masdar 50GW RE · 원자력 5.6GW',
-    cagr: 'RE CAGR 20%+',
+    size: '재생에너지 $4.8B (2024) → $12B (2033E) · RE 용량 7.3GW (2025)',
+    cagr: 'RE CAGR 10.8%',
     valueChain: [
       { label: '원유/가스 생산' },
       { label: '정제/석유화학' },
@@ -153,8 +166,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '👗',
     name: '패션 · 럭셔리 · 리테일',
-    size: '럭셔리 $8.5B (2024E) · 리테일 $70B+ · E-com $10B+',
-    cagr: 'CAGR 5-8%',
+    size: '럭셔리 $4.2B (2024) · GCC 럭셔리 $12.8B (UAE 48.6% 점유)',
+    cagr: 'CAGR 5.5%',
     valueChain: [
       { label: '글로벌 브랜드 소싱' },
       { label: '현지 유통사 독점계약' },
@@ -175,8 +188,8 @@ export const sectors: readonly Sector[] = [
   {
     icon: '🦾',
     name: '로보틱스 · 우주 · 방위산업',
-    size: '방위 $26B (2025E) · 우주 $6B+ · 로보틱스 $1.5B',
-    cagr: 'CAGR 10-18%',
+    size: '방위예산 $23.9B (2025) → $30.2B (2030E) · EDGE 수출 $2.3B',
+    cagr: 'CAGR 4.7%',
     valueChain: [
       { label: 'R&D (ATRC/TIRA)' },
       { label: '방위 제조 (EDGE)' },

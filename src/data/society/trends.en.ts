@@ -1,4 +1,4 @@
-import type { CasinoDetail, CasinoSurvey, LiberalizationEvent, CulturalInfra, UnescoItem, GamingMetric, GenZTrend, KWaveCategory, TrendAxis } from './trends'
+import type { CasinoDetail, CasinoSurvey, LiberalizationEvent, CulturalInfra, UnescoItem, GamingMetric, GenZTrend, KWaveCategory, TrendAxis, CreativeIndustryStrategy, FilmMediaHub } from './trends'
 
 export const casinoDetails: readonly CasinoDetail[] = [
   { label: 'First Casino License', value: 'Issued to Wynn Resorts in Oct 2024 (GCGRA)' },
@@ -51,10 +51,53 @@ export const liberalizationInsights: readonly string[] = [
 ] as const
 
 export const culturalInfrastructure: readonly CulturalInfra[] = [
-  { name: 'teamLab Phenomena Abu Dhabi', location: 'Saadiyat Island', description: 'teamLab\'s first permanent exhibition in the Middle East. Immersive digital art', year: '2025' },
-  { name: 'Zayed National Museum', location: 'Saadiyat Island', description: 'National narrative from UAE founding to present. National museum', year: '2025' },
-  { name: 'Natural History Museum Abu Dhabi', location: 'Saadiyat Island', description: '13.8 billion years of cosmic history to evolution of life on Earth. World-class scale', year: '2025' },
-  { name: 'Dubai Museum of Art', location: 'Dubai', description: 'Dubai\'s first large-scale art museum (construction planned)', year: 'TBD' },
+  { name: 'Louvre Abu Dhabi', location: 'Saadiyat Island', description: 'World\'s first universal museum Arab edition. Jean Nouvel design', year: '2017', investment: '$1B', status: 'open' },
+  { name: 'teamLab Phenomena Abu Dhabi', location: 'Saadiyat Island', description: 'teamLab\'s first permanent Middle East exhibition. 17,000m² immersive digital art', year: '2025', investment: '$350M', status: 'open' },
+  { name: 'Natural History Museum Abu Dhabi', location: 'Saadiyat Island', description: '13.8 billion years of cosmic history to Earth life evolution. 35,000m² (largest in region)', year: '2025', investment: '$500M', status: 'open' },
+  { name: 'Zayed National Museum', location: 'Saadiyat Island', description: 'UAE founding to present national narrative. 56,000m² national museum', year: '2025', investment: '$600M', status: 'open' },
+  { name: 'Guggenheim Abu Dhabi', location: 'Saadiyat Island', description: 'Frank Gehry design, largest Guggenheim globally. Post-1960s West Asian/North African/South Asian art', year: '2026', investment: '$800M', status: 'under-construction' },
+  { name: 'Dubai Museum of Art', location: 'Dubai', description: 'Dubai\'s first large-scale art museum (Dubai Creek Harbour)', year: 'TBD', status: 'planned' },
+] as const
+
+export const creativeEconomyStrategy: CreativeIndustryStrategy = {
+  target: '5% of GDP',
+  current: '2.6% of GDP (Dubai)',
+  deadline: '2031',
+  initiatives: [
+    'National Strategy for Cultural & Creative Industries (40 initiatives)',
+    'Dubai Creative Economy Strategy: 140,000 creative workforce target (2025)',
+    'National Grant Program for Culture and Creativity',
+    'Creative Youth mentorship/funding program (DCT)',
+    'Cultural freelancer/SME business environment study and policy development',
+    'ICOM Dubai 2025: First Middle East International Council of Museums Conference',
+  ],
+} as const
+
+export const filmMediaHub: FilmMediaHub = {
+  name: 'Yas Creative Hub / twofour54',
+  operator: 'ADNEC Group',
+  facilities: [
+    '100+ acre studio complex (2025 completion)',
+    '11 soundstages',
+    'Exterior water tank for filming',
+    '6 standing sets',
+    'CNN, National Geographic, MTV resident',
+  ],
+  incentives: [
+    '35%++ cashback rebate (increased from Jan 2025)',
+    'First cashback in Middle East (2013)',
+    '150+ major productions supported',
+    '175+ local crew employment requirement',
+  ],
+  productions: [
+    'F1: The Movie (Brad Pitt, 2025) — Yas Marina Circuit',
+    'Now You See Me: Now You Don\'t (2025) — Louvre, Liwa Desert',
+    'Mission: Impossible 7 — Abu Dhabi shooting',
+  ],
+} as const
+
+export const cinemaMilestones: readonly { readonly year: number; readonly revenue: string; readonly tickets: string; readonly films: number }[] = [
+  { year: 2024, revenue: 'AED 800M ($218M)', tickets: '15M+', films: 1262 },
 ] as const
 
 export const unescoItems: readonly UnescoItem[] = [
@@ -64,10 +107,20 @@ export const unescoItems: readonly UnescoItem[] = [
   { name: 'Kohl', year: 2025 },
 ] as const
 
+export const softPowerInitiatives: readonly string[] = [
+  'Cultural dialogue activated with strategic partners including France and South Korea',
+  'UNESCO + UAE + Iraq: Iraq cultural heritage reconstruction $50.4M (5 years)',
+  'Sharjah Art Foundation Middle East cultural production grants',
+  'Ministry of Culture National Grant Program',
+  'Saadiyat Cultural District = one of world\'s largest single cultural clusters',
+] as const
+
 export const culturalInsights: readonly string[] = [
-  'Saadiyat Island = Louvre Abu Dhabi (2017) + Guggenheim (under construction) + 3 new venues -- a world-class cultural cluster',
-  'Korean opportunities: K-Art exhibitions, digital art technology, Korean cultural content festivals',
-  'The UAE government is seeking its "post-oil identity" in culture -- high likelihood of government support for culture-related investments',
+  'Saadiyat Island = Louvre (2017) + Guggenheim (2026) + 4 new museums — $6B+ cultural cluster',
+  'Creative industries GDP target 5% (2031) — currently 2.6% (Dubai)',
+  'Korean opportunities: K-Art exhibitions, digital art technology, film co-production, cultural content festivals',
+  'UAE government seeking "post-oil identity" in culture — high likelihood of government support for culture investments',
+  '35% film shooting rebate + 100-acre studio — actively attracting Hollywood productions',
 ] as const
 
 export const gamingMetrics: readonly GamingMetric[] = [

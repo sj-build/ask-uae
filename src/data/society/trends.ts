@@ -70,13 +70,73 @@ export interface CulturalInfra {
   readonly location: string
   readonly description: string
   readonly year: string
+  readonly investment?: string
+  readonly status?: 'open' | 'under-construction' | 'planned'
 }
 
 export const culturalInfrastructure: readonly CulturalInfra[] = [
-  { name: 'teamLab Phenomena Abu Dhabi', location: 'Saadiyat Island', description: '일본 teamLab의 중동 최초 상설 전시. 몰입형 디지털 아트', year: '2025' },
-  { name: 'Zayed National Museum', location: 'Saadiyat Island', description: 'UAE 건국사~현재까지의 국가 내러티브. 국립박물관', year: '2025' },
-  { name: 'Natural History Museum Abu Dhabi', location: 'Saadiyat Island', description: '138억년 우주 역사~지구 생명 진화. 세계적 규모', year: '2025' },
-  { name: 'Dubai Museum of Art', location: 'Dubai', description: '두바이 최초의 대규모 미술관 (건설 예정)', year: 'TBD' },
+  { name: 'Louvre Abu Dhabi', location: 'Saadiyat Island', description: '세계 최초 보편 박물관 아랍판. Jean Nouvel 설계', year: '2017', investment: '$1B', status: 'open' },
+  { name: 'teamLab Phenomena Abu Dhabi', location: 'Saadiyat Island', description: '일본 teamLab의 중동 최초 상설 전시. 몰입형 디지털 아트 17,000m²', year: '2025', investment: '$350M', status: 'open' },
+  { name: 'Natural History Museum Abu Dhabi', location: 'Saadiyat Island', description: '138억년 우주 역사~지구 생명 진화. 35,000m² (지역 최대)', year: '2025', investment: '$500M', status: 'open' },
+  { name: 'Zayed National Museum', location: 'Saadiyat Island', description: 'UAE 건국사~현재까지의 국가 내러티브. 56,000m² 국립박물관', year: '2025', investment: '$600M', status: 'open' },
+  { name: 'Guggenheim Abu Dhabi', location: 'Saadiyat Island', description: 'Frank Gehry 설계, 전 세계 Guggenheim 중 최대 규모. 1960년대 이후 서아시아/북아프리카/남아시아 미술', year: '2026', investment: '$800M', status: 'under-construction' },
+  { name: 'Dubai Museum of Art', location: 'Dubai', description: '두바이 최초의 대규모 미술관 (Dubai Creek Harbour)', year: 'TBD', status: 'planned' },
+] as const
+
+export interface CreativeIndustryStrategy {
+  readonly target: string
+  readonly current: string
+  readonly deadline: string
+  readonly initiatives: readonly string[]
+}
+
+export const creativeEconomyStrategy: CreativeIndustryStrategy = {
+  target: 'GDP 5%',
+  current: 'GDP 2.6% (Dubai)',
+  deadline: '2031',
+  initiatives: [
+    'National Strategy for Cultural & Creative Industries (40개 이니셔티브)',
+    'Dubai Creative Economy Strategy: 창작 인력 14만명 목표 (2025)',
+    'National Grant Program for Culture and Creativity',
+    'Creative Youth 멘토십/자금 지원 프로그램 (DCT)',
+    '문화 프리랜서/SME 비즈니스 환경 연구 및 정책 개발',
+    'ICOM Dubai 2025: 국제박물관협회 총회 최초 중동 개최',
+  ],
+} as const
+
+export interface FilmMediaHub {
+  readonly name: string
+  readonly operator: string
+  readonly facilities: readonly string[]
+  readonly incentives: readonly string[]
+  readonly productions: readonly string[]
+}
+
+export const filmMediaHub: FilmMediaHub = {
+  name: 'Yas Creative Hub / twofour54',
+  operator: 'ADNEC Group',
+  facilities: [
+    '100+ 에이커 스튜디오 단지 (2025 완공)',
+    '11개 사운드스테이지',
+    '수상 촬영용 외부 탱크',
+    '6개 상설 세트',
+    'CNN, National Geographic, MTV 상주',
+  ],
+  incentives: [
+    '35%++ 캐시백 리베이트 (2025.1부터 인상)',
+    '중동 최초 캐시백 도입 (2013)',
+    '150+ 메이저 프로덕션 지원',
+    '현지 크루 175명+ 고용 의무',
+  ],
+  productions: [
+    'F1: The Movie (Brad Pitt, 2025) — Yas Marina Circuit',
+    'Now You See Me: Now You Don\'t (2025) — Louvre, Liwa Desert',
+    'Mission: Impossible 7 — Abu Dhabi 촬영',
+  ],
+} as const
+
+export const cinemaMilestones: readonly { readonly year: number; readonly revenue: string; readonly tickets: string; readonly films: number }[] = [
+  { year: 2024, revenue: 'AED 800M ($218M)', tickets: '15M+', films: 1262 },
 ] as const
 
 export interface UnescoItem {
@@ -91,10 +151,20 @@ export const unescoItems: readonly UnescoItem[] = [
   { name: 'Kohl', year: 2025 },
 ] as const
 
+export const softPowerInitiatives: readonly string[] = [
+  '프랑스, 한국 등 전략 파트너국과 문화 대화 활성화',
+  'UNESCO + UAE + 이라크: 이라크 문화유산 재건 $50.4M (5년)',
+  'Sharjah Art Foundation 중동 문화 생산 그랜트',
+  'Ministry of Culture 국가 문화 그랜트 프로그램',
+  'Saadiyat Cultural District = 세계 최대 단일 문화 클러스터 중 하나',
+] as const
+
 export const culturalInsights: readonly string[] = [
-  'Saadiyat Island = Louvre Abu Dhabi(2017) + Guggenheim(건설중) + 3개 신규 -> 세계적 문화 클러스터',
-  '한국 기회: K-Art 전시, 디지털 아트 기술, 한국 문화 콘텐츠 페스티벌',
+  'Saadiyat Island = Louvre(2017) + Guggenheim(2026) + 4개 신규 박물관 -> $6B+ 문화 클러스터',
+  '문화창작산업 GDP 5% 목표 (2031) — 현재 2.6% (Dubai 기준)',
+  '한국 기회: K-Art 전시, 디지털 아트 기술, 영화 공동제작, 문화 콘텐츠 페스티벌',
   'UAE 정부가 "석유 이후의 정체성"을 문화에서 찾고 있음 -> 문화 관련 투자에 정부 지원 가능성 높음',
+  '35% 영화 촬영 리베이트 + 100에이커 스튜디오 -> 할리우드 프로덕션 유치 적극',
 ] as const
 
 export interface GamingMetric {

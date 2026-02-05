@@ -138,5 +138,21 @@ export interface Translations {
       readonly freeZonesTitle: string
       readonly timelineTitle: string
     }
+    readonly news: {
+      readonly title: string
+      readonly subtitle: string
+      readonly allNews: string
+      readonly uaeGeneral: string
+      readonly uaeKorea: string
+      readonly business: string
+      readonly energy: string
+      readonly realEstate: string
+      readonly finance: string
+      readonly tech: string
+      readonly articles: string
+      readonly filteredFrom: string
+      readonly total: string
+      readonly noNews: string
+    }
   }
 }

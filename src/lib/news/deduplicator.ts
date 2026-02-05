@@ -3,8 +3,14 @@ import type { NewsItem, NewsPriority } from '@/types/news'
 const SOURCE_PRIORITY_ORDER: Record<NewsPriority, number> = {
   reuters: 1,
   bloomberg: 2,
-  gulf_news: 3,
-  other: 4,
+  financial_times: 3,
+  wsj: 4,
+  the_national: 5,
+  khaleej_times: 6,
+  arab_news: 7,
+  gulf_news: 8,
+  wam: 9,
+  other: 10,
 } as const
 
 function tokenize(text: string): ReadonlySet<string> {

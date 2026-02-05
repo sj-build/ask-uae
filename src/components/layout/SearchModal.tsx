@@ -122,9 +122,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           )}
 
           {isLoading && (
-            <div className="text-center py-20">
-              <div className="w-8 h-8 border-3 border-brd border-t-gold rounded-full animate-spin mx-auto" />
-              <div className="text-sm text-t2 mt-4">{t.search.loading}</div>
+            <div className="flex flex-col items-center justify-center py-16">
+              {/* Animated loading spinner */}
+              <div className="relative w-16 h-16 mb-6">
+                <div className="absolute inset-0 border-4 border-gold/20 rounded-full" />
+                <div className="absolute inset-0 border-4 border-transparent border-t-gold rounded-full animate-spin" />
+                <div className="absolute inset-2 border-4 border-transparent border-t-gold/60 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              </div>
+              {/* Loading text */}
+              <div className="text-lg font-semibold text-gold mb-2">{t.search.loading}</div>
+              <div className="text-sm text-t3 animate-pulse">AI가 대시보드 데이터를 분석하고 있습니다...</div>
+              <div className="text-xs text-t4 mt-3">응답까지 5~15초 소요될 수 있습니다</div>
             </div>
           )}
 
