@@ -1,0 +1,428 @@
+// ─── Legal Framework ────────────────────────────────────────
+
+import type {
+  LegalLayer,
+  LegalSystemFeature,
+  TaxMetric,
+  RegulationItem,
+  FreeZone,
+  FreeZoneProCon,
+  TimelineEvent,
+} from './legal-data'
+
+export const legalLayers: readonly LegalLayer[] = [
+  {
+    tier: 1,
+    label: 'Federal Constitution & Laws',
+    labelKo: '연방 헌법 및 연방법',
+    description: 'Supreme legal framework. Enacted by the Federal National Council (FNC) and Federal Cabinet.',
+    color: '#c8a44e',
+    glowColor: 'rgba(200, 164, 78, 0.15)',
+    examples: ['Constitution (1971)', 'Federal Penal Code', 'Civil Procedure Law', 'Commercial Law', 'Labour Law', 'PDPL 2022'],
+  },
+  {
+    tier: 2,
+    label: 'Emirate-Level Laws',
+    labelKo: '에미리트 개별법',
+    description: 'Each of the 7 emirates enacts its own legislation within federal law boundaries. Covers real estate, leasing, local taxes, etc.',
+    color: '#4a9eff',
+    glowColor: 'rgba(74, 158, 255, 0.12)',
+    examples: ['Dubai Tenancy Law', 'Abu Dhabi Land Law', 'Dubai RERA', 'Abu Dhabi DOE Regulations'],
+  },
+  {
+    tier: 3,
+    label: 'Sharia + Civil Law (Mixed)',
+    labelKo: '이슬람법(샤리아) + 대륙법 혼합',
+    description: 'Family and inheritance law are based on Sharia. Commercial and criminal law are based on Egyptian/French civil law traditions.',
+    color: '#34d399',
+    glowColor: 'rgba(52, 211, 153, 0.12)',
+    examples: ['Family Law (Sharia)', 'Inheritance Law', 'Commercial Law (Civil Law)', 'Non-Muslim Family Law 2023'],
+  },
+  {
+    tier: 4,
+    label: 'Free Zone Common Law',
+    labelKo: 'DIFC / ADGM 커먼로 체계',
+    description: 'Independent common law legal system based on English law. Features independent courts, judges, and arbitration. Global business standard.',
+    color: '#a78bfa',
+    glowColor: 'rgba(167, 139, 250, 0.12)',
+    examples: ['DIFC Courts (British judges)', 'ADGM Courts', 'DIFC Companies Law', 'ADGM Insolvency Law'],
+  },
+] as const
+
+export const legalSystemFeatures: readonly LegalSystemFeature[] = [
+  {
+    icon: '🏛️',
+    title: 'Dual Legal System',
+    description: 'Federal and emirate-level laws coexist. Jurisdiction varies by matter, making legal counsel essential.',
+  },
+  {
+    icon: '⚖️',
+    title: 'Sharia + Civil Law',
+    description: 'Family and inheritance follow Islamic law; commercial and criminal matters follow civil law. Greater flexibility since the 2023 Non-Muslim Family Law.',
+  },
+  {
+    icon: '🌐',
+    title: 'Common Law Coexistence',
+    description: 'English-based common law system within DIFC and ADGM. International dispute resolution, English-language proceedings, global judges.',
+  },
+  {
+    icon: '📜',
+    title: 'Rapid Legislative Pace',
+    description: 'Monarchical governance enables extremely fast legislation. Corporate tax and data protection laws were introduced within months.',
+  },
+] as const
+
+// ─── Business Regulations ───────────────────────────────────
+
+export const taxMetrics: readonly TaxMetric[] = [
+  {
+    label: 'Corporate Tax',
+    value: '9%',
+    subLabel: 'On taxable income exceeding AED 375K (from Jun 2023)',
+    icon: '🏢',
+    color: '#c8a44e',
+    glowColor: 'rgba(200, 164, 78, 0.15)',
+  },
+  {
+    label: 'VAT',
+    value: '5%',
+    subLabel: 'Introduced in 2018, lowest level in the GCC',
+    icon: '🧾',
+    color: '#4a9eff',
+    glowColor: 'rgba(74, 158, 255, 0.12)',
+  },
+  {
+    label: 'Income Tax',
+    value: '0%',
+    subLabel: 'No personal income tax (among the lowest globally)',
+    icon: '👤',
+    color: '#34d399',
+    glowColor: 'rgba(52, 211, 153, 0.12)',
+  },
+  {
+    label: 'Capital Gains Tax',
+    value: '0%',
+    subLabel: 'No tax on gains from stocks or real estate transfers',
+    icon: '📈',
+    color: '#a78bfa',
+    glowColor: 'rgba(167, 139, 250, 0.12)',
+  },
+] as const
+
+export const regulations: readonly RegulationItem[] = [
+  {
+    category: 'Employment',
+    icon: '🇦🇪',
+    title: 'Emiratisation',
+    description: 'Mandatory hiring of UAE nationals in the private sector',
+    details: [
+      'Applies to private companies with 50+ employees',
+      'Annual 2% increase required for skilled Emirati workforce ratio',
+      '2025 target: 10%',
+      'Non-compliance penalty: AED 96,000/person/year (approx. $26,000)',
+      'Supervised by MoHRE (Ministry of Human Resources and Emiratisation)',
+    ],
+    badgeColor: '#ef4444',
+  },
+  {
+    category: 'Investment',
+    icon: '🌍',
+    title: 'Foreign Direct Investment (FDI)',
+    description: '100% foreign ownership allowed following the 2021 Commercial Companies Law amendment',
+    details: [
+      'Before 2021: 51% local sponsor ownership required',
+      'After 2021: 100% foreign ownership permitted on the mainland',
+      'Free Zones: 100% foreign ownership already allowed',
+      'Negative list: Restrictions on select sectors including oil/gas, banking, and insurance',
+      '1,000+ activities opened across strategic industries',
+    ],
+    badgeColor: '#34d399',
+  },
+  {
+    category: 'Data',
+    icon: '🔒',
+    title: 'Data Protection (PDPL 2022)',
+    description: 'UAE\'s first federal personal data protection law',
+    details: [
+      'Effective January 2022 (Federal Decree-Law No. 45/2021)',
+      'Structure similar to GDPR (consent, data subject rights, DPO)',
+      'Cross-border transfer: Adequacy assessment or contractual safeguards required',
+      'Penalties for violations: AED 50K-5M',
+      'DIFC/ADGM have separate data protection laws',
+    ],
+    badgeColor: '#4a9eff',
+  },
+  {
+    category: 'Anti-Money Laundering',
+    icon: '🛡️',
+    title: 'AML/CFT Regulations',
+    description: 'Removed from FATF grey list in February 2024',
+    details: [
+      'Added to FATF grey list in March 2022',
+      'Removed in February 2024 (achieved ahead of schedule in 2 years)',
+      'Ultimate Beneficial Owner (UBO) registration mandated',
+      'goAML system: Digitized Suspicious Transaction Reports (STR)',
+      'Virtual asset AML: Dual supervision by VARA and CBUAE',
+    ],
+    badgeColor: '#f59e0b',
+  },
+] as const
+
+// ─── Free Zones ─────────────────────────────────────────────
+
+export const freeZones: readonly FreeZone[] = [
+  {
+    name: 'DIFC',
+    fullName: 'Dubai International Financial Centre',
+    specialty: 'Finance / Fintech',
+    location: 'Dubai',
+    stats: [
+      '4,400+ registered companies',
+      '36,000+ professionals',
+      'Independent common law courts',
+      '$5.8T total assets under management',
+    ],
+    advantages: [
+      'English-based common law system',
+      'Independent courts (British judges)',
+      '50-year tax exemption guarantee',
+      'Ranked 8th global financial centre (GFCI)',
+    ],
+    color: '#c8a44e',
+    glowColor: 'rgba(200, 164, 78, 0.12)',
+  },
+  {
+    name: 'ADGM',
+    fullName: 'Abu Dhabi Global Market',
+    specialty: 'Finance / Crypto',
+    location: 'Abu Dhabi',
+    stats: [
+      'FSRA regulatory framework',
+      'World\'s first crypto regulations (2018)',
+      'RegLab fintech sandbox',
+      '1,800+ licences',
+    ],
+    advantages: [
+      'English-based common law system',
+      'Leading crypto/digital asset regulation',
+      'Fintech sandbox (RegLab)',
+      'Independent courts + arbitration centre',
+    ],
+    color: '#4a9eff',
+    glowColor: 'rgba(74, 158, 255, 0.12)',
+  },
+  {
+    name: 'JAFZA',
+    fullName: 'Jebel Ali Free Zone',
+    specialty: 'Logistics / Manufacturing',
+    location: 'Dubai',
+    stats: [
+      '8,700+ tenant companies',
+      '23% of UAE non-oil trade',
+      'Companies from 135+ countries',
+      'Adjacent to Jebel Ali Port (world\'s 9th largest)',
+    ],
+    advantages: [
+      'One of the world\'s largest free zones',
+      'Direct port and airport connectivity',
+      'Full infrastructure (factories, logistics, offices)',
+      '100% profit repatriation',
+    ],
+    color: '#34d399',
+    glowColor: 'rgba(52, 211, 153, 0.12)',
+  },
+  {
+    name: 'DMCC',
+    fullName: 'Dubai Multi Commodities Centre',
+    specialty: 'Commodities Trading',
+    location: 'Dubai',
+    stats: [
+      '22,000+ member companies',
+      'World\'s #1 free zone for 8 consecutive years (fDi)',
+      'Global commodities trading hub',
+      '650+ crypto companies',
+    ],
+    advantages: [
+      'Gold, diamonds, coffee, and other commodities trading',
+      'Crypto centre operations',
+      'Smart offices + co-working spaces',
+      'One-stop visa and licensing services',
+    ],
+    color: '#f59e0b',
+    glowColor: 'rgba(245, 158, 11, 0.12)',
+  },
+  {
+    name: 'DAFZA',
+    fullName: 'Dubai Airport Free Zone',
+    specialty: 'IT / Aviation / Logistics',
+    location: 'Dubai',
+    stats: [
+      '1,800+ companies',
+      'Adjacent to DXB Airport',
+      'Specialised in IT, aviation, and logistics',
+      'Annual trade volume $18B+',
+    ],
+    advantages: [
+      'Direct airport connectivity',
+      'Concentration of IT and tech companies',
+      'Fast licence issuance',
+      'Strategic location (within airport premises)',
+    ],
+    color: '#22d3ee',
+    glowColor: 'rgba(34, 211, 238, 0.12)',
+  },
+  {
+    name: 'KIZAD',
+    fullName: 'Khalifa Industrial Zone Abu Dhabi',
+    specialty: 'Industrial / Manufacturing',
+    location: 'Abu Dhabi',
+    stats: [
+      '420 km\u00B2 area',
+      'Adjacent to Khalifa Port',
+      'Food, metals, chemicals, logistics',
+      '800+ companies',
+    ],
+    advantages: [
+      'Large-scale industrial land',
+      'Customised infrastructure development',
+      'Port-connected logistics',
+      'Abu Dhabi government support',
+    ],
+    color: '#ef4444',
+    glowColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  {
+    name: 'Masdar City FZ',
+    fullName: 'Masdar City Free Zone',
+    specialty: 'Renewable Energy / Cleantech',
+    location: 'Abu Dhabi',
+    stats: [
+      '1,000+ companies',
+      'Cleantech R&D hub',
+      'IRENA headquarters',
+      'Carbon-neutral city goal',
+    ],
+    advantages: [
+      'Specialised clean energy ecosystem',
+      'R&D facilities and laboratories',
+      'Proximity to IRENA and MBZUAI',
+      'Sustainable infrastructure',
+    ],
+    color: '#34d399',
+    glowColor: 'rgba(52, 211, 153, 0.12)',
+  },
+  {
+    name: 'twofour54',
+    fullName: 'twofour54 Media Free Zone',
+    specialty: 'Media / Entertainment',
+    location: 'Abu Dhabi',
+    stats: [
+      '900+ media companies',
+      'Home to CNN, Sky News, MBC',
+      'Film/broadcast production studios',
+      'Adjacent to Yas Island',
+    ],
+    advantages: [
+      'Specialised in media content',
+      'World-class production infrastructure',
+      '30% production rebate',
+      'Abu Dhabi Film Commission',
+    ],
+    color: '#f472b6',
+    glowColor: 'rgba(244, 114, 182, 0.12)',
+  },
+] as const
+
+export const freeZoneProsCons: readonly FreeZoneProCon[] = [
+  { type: 'pro', text: '100% foreign ownership guaranteed' },
+  { type: 'pro', text: 'Corporate tax and customs duty exemption (up to 50 years)' },
+  { type: 'pro', text: '100% profit and capital repatriation' },
+  { type: 'pro', text: 'One-stop licence issuance' },
+  { type: 'pro', text: 'Independent regulatory framework' },
+  { type: 'con', text: 'Restrictions on direct mainland trade' },
+  { type: 'con', text: 'Separate licence required per free zone' },
+  { type: 'con', text: 'Physical office requirement (P.O. Box trend declining)' },
+  { type: 'con', text: 'Regulatory differences across free zones add complexity' },
+] as const
+
+// ─── Recent Legal Changes Timeline ─────────────────────────
+
+export const timelineEvents: readonly TimelineEvent[] = [
+  {
+    year: 2023,
+    month: 'Jun',
+    title: '9% Corporate Tax Introduced',
+    description: 'First-ever corporate tax in UAE history. 9% applies to taxable income exceeding AED 375,000. Qualifying free zone income remains at 0%.',
+    impact: 'high',
+    category: 'Taxation',
+    categoryColor: '#c8a44e',
+  },
+  {
+    year: 2023,
+    month: 'Oct',
+    title: 'GCGRA Established',
+    description: 'General Commercial Gaming Regulatory Authority. UAE\'s first commercial gaming (casino) regulatory body established.',
+    impact: 'medium',
+    category: 'Regulatory Body',
+    categoryColor: '#a78bfa',
+  },
+  {
+    year: 2024,
+    month: 'Feb',
+    title: 'FATF Grey List Removal',
+    description: 'Removed just 2 years after being listed in 2022. Significant strengthening of AML/CFT framework recognised. International financial credibility restored.',
+    impact: 'high',
+    category: 'AML',
+    categoryColor: '#34d399',
+  },
+  {
+    year: 2024,
+    month: 'May',
+    title: 'Korea-UAE CEPA Enters into Force',
+    description: 'Comprehensive Economic Partnership Agreement. Tariff elimination on approximately 97% of product lines. Covers services, investment, and digital trade.',
+    impact: 'high',
+    category: 'Trade',
+    categoryColor: '#4a9eff',
+  },
+  {
+    year: 2024,
+    title: 'Full Digital Tax Filing Transition',
+    description: 'Mandatory electronic filing of corporate tax, VAT, and excise tax via the EmaraTax platform. Paper-based filing completely abolished.',
+    impact: 'medium',
+    category: 'Taxation',
+    categoryColor: '#c8a44e',
+  },
+  {
+    year: 2025,
+    title: 'Emiratisation 10% Target',
+    description: 'Private companies with 50+ employees must achieve 10% skilled Emirati workforce ratio. Penalty of AED 96,000 per person for non-compliance.',
+    impact: 'high',
+    category: 'Employment',
+    categoryColor: '#ef4444',
+  },
+  {
+    year: 2025,
+    month: 'Jan',
+    title: 'Sugar Tax Introduced',
+    description: 'Additional excise tax on sugary beverages. Aimed at health promotion and diabetes prevention. Part of the broader GCC health tax trend.',
+    impact: 'low',
+    category: 'Taxation',
+    categoryColor: '#c8a44e',
+  },
+  {
+    year: 2026,
+    title: 'Dual-Class Shares Permitted',
+    description: 'Effective under the 2025 Commercial Companies Law amendment. Supports tech startup founders in maintaining governance control. Greater listing flexibility on ADX/DFM.',
+    impact: 'high',
+    category: 'Corporate Law',
+    categoryColor: '#a78bfa',
+  },
+  {
+    year: 2026,
+    title: 'Regulatory Transparency Enhancement Act',
+    description: 'Regulatory Impact Analysis (RIA) mandated. Public consultation procedures introduced. Convergence with OECD regulatory quality standards.',
+    impact: 'medium',
+    category: 'Governance',
+    categoryColor: '#22d3ee',
+  },
+] as const

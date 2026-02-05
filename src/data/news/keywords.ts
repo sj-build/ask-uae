@@ -1,0 +1,122 @@
+import type { Keyword, KeywordLayer } from '@/types/news'
+
+const layer1Keywords: readonly Keyword[] = [
+  { id: 'k1-mbz', en: 'Sheikh Mohammed bin Zayed', ko: '무함마드 빈 자이드', category: '왕족', active: true },
+  { id: 'k1-tahnoun', en: 'Sheikh Tahnoun bin Zayed', ko: '타흐눈 빈 자이드', category: '왕족', active: true },
+  { id: 'k1-mansour', en: 'Sheikh Mansour bin Zayed', ko: '만수르 빈 자이드', category: '왕족', active: true },
+  { id: 'k1-khaled', en: 'Sheikh Khaled bin Mohamed', ko: '할리드 빈 무함마드', category: '왕족', active: true },
+  { id: 'k1-mbr', en: 'Sheikh Mohammed bin Rashid', ko: '무함마드 빈 라시드', category: '왕족', active: true },
+  { id: 'k1-khaldoon', en: 'Khaldoon Al Mubarak', ko: '할둔 알 무바라크', category: '핵심인물', active: true },
+  { id: 'k1-peng', en: 'Peng Xiao', ko: '펑 샤오', category: '핵심인물', active: true },
+  { id: 'k1-syed', en: 'Syed Basar Shueb', ko: '시에드 바사르 슈엡', category: '핵심인물', active: true },
+  { id: 'k1-sultan', en: 'Sultan Al Jaber', ko: '술탄 알 자버', category: '핵심인물', active: true },
+  { id: 'k1-alsuwaidi', en: 'Mohamed Hassan Alsuwaidi', ko: '무함마드 하산 알수와이디', category: '핵심인물', active: true },
+  { id: 'k1-bannai', en: 'Faisal Al Bannai', ko: '파이살 알 반나이', category: '핵심인물', active: true },
+  { id: 'k1-idrissi', en: 'Ahmed Yahia Al Idrissi', ko: '아흐메드 야히아 알 이드리시', category: '핵심인물', active: true },
+  { id: 'k1-adia', en: 'ADIA', ko: '아부다비투자청', category: '국부펀드', active: true },
+  { id: 'k1-mubadala', en: 'Mubadala', ko: '무바달라', category: '국부펀드', active: true },
+  { id: 'k1-adq', en: 'ADQ', ko: 'ADQ', category: '국부펀드', active: true },
+  { id: 'k1-limad', en: "L'imad Holding", ko: '리마드 홀딩', category: '국부펀드', active: true },
+  { id: 'k1-ihc', en: 'IHC', ko: 'IHC', category: '국영기업', active: true },
+  { id: 'k1-g42', en: 'G42', ko: 'G42', category: '테크', active: true },
+  { id: 'k1-mgx', en: 'MGX', ko: 'MGX', category: '투자', active: true },
+  { id: 'k1-fab', en: 'First Abu Dhabi Bank', ko: 'FAB', category: '금융', active: true },
+  { id: 'k1-lunate', en: 'Lunate', ko: '루나테', category: '투자', active: true },
+  { id: 'k1-adnoc', en: 'ADNOC', ko: '아드녹', category: '에너지', active: true },
+  { id: 'k1-icd', en: 'Investment Corporation of Dubai', ko: 'ICD', category: '국부펀드', active: true },
+  { id: 'k1-dif', en: 'Dubai Holding', ko: '두바이홀딩', category: '국부펀드', active: true },
+] as const
+
+const layer2Keywords: readonly Keyword[] = [
+  { id: 'k2-ai-dc', en: 'AI data center', ko: 'AI 데이터센터', category: 'AI/테크', active: true },
+  { id: 'k2-stargate', en: 'Stargate UAE', ko: '스타게이트 UAE', category: 'AI/테크', active: true },
+  { id: 'k2-khazna', en: 'Khazna Data Centers', ko: '카즈나', category: 'AI/테크', active: true },
+  { id: 'k2-space42', en: 'Space42', ko: '스페이스42', category: '우주/방위', active: true },
+  { id: 'k2-edge', en: 'EDGE Group', ko: 'EDGE 그룹', category: '우주/방위', active: true },
+  { id: 'k2-masdar', en: 'Masdar', ko: '마스다르', category: '에너지', active: true },
+  { id: 'k2-xrg', en: 'XRG', ko: 'XRG', category: '에너지', active: true },
+  { id: 'k2-taqa', en: 'TAQA', ko: 'TAQA', category: '에너지', active: true },
+  { id: 'k2-dewa', en: 'DEWA', ko: 'DEWA', category: '에너지', active: true },
+  { id: 'k2-barakah', en: 'Barakah Nuclear', ko: '바라카 원전', category: '에너지', active: true },
+  { id: 'k2-emaar', en: 'Emaar Properties', ko: '에마르', category: '부동산', active: true },
+  { id: 'k2-aldar', en: 'Aldar Properties', ko: '알다르', category: '부동산', active: true },
+  { id: 'k2-damac', en: 'DAMAC', ko: '다막', category: '부동산', active: true },
+  { id: 'k2-binance', en: 'Binance', ko: '바이낸스', category: '크립토', active: true },
+  { id: 'k2-vara', en: 'VARA', ko: 'VARA', category: '크립토', active: true },
+  { id: 'k2-adgm', en: 'ADGM', ko: 'ADGM', category: '금융', active: true },
+  { id: 'k2-difc', en: 'DIFC', ko: 'DIFC', category: '금융', active: true },
+  { id: 'k2-phoenix', en: 'Phoenix Group', ko: '피닉스 그룹', category: '크립토', active: true },
+  { id: 'k2-stablecoin', en: 'AED stablecoin', ko: 'AED 스테이블코인', category: '크립토', active: true },
+  { id: 'k2-wynn', en: 'Wynn Al Marjan', ko: '윈 알마르잔', category: '관광', active: true },
+  { id: 'k2-m42', en: 'M42 healthcare', ko: 'M42 헬스케어', category: '헬스케어', active: true },
+  { id: 'k2-chalhoub', en: 'Chalhoub Group', ko: '샬후브 그룹', category: '리테일', active: true },
+  { id: 'k2-hub71', en: 'Hub71', ko: 'Hub71', category: '테크/스타트업', active: true },
+  { id: 'k2-adio', en: 'ADIO', ko: 'ADIO', category: '정부기관', active: true },
+  { id: 'k2-noon', en: 'Noon.com', ko: '눈닷컴', category: '이커머스', active: true },
+  { id: 'k2-lulu', en: 'Lulu Hypermarket', ko: '룰루 하이퍼마켓', category: '리테일', active: true },
+] as const
+
+const layer3Keywords: readonly Keyword[] = [
+  { id: 'k3-opec', en: 'OPEC oil price', ko: 'OPEC 유가', category: '거시경제', active: true },
+  { id: 'k3-oil', en: 'oil price UAE', ko: '유가 UAE', category: '거시경제', active: true },
+  { id: 'k3-cepa', en: 'UAE CEPA trade', ko: 'UAE CEPA', category: '무역', active: true },
+  { id: 'k3-gcc', en: 'GCC cooperation', ko: 'GCC 협력', category: '지정학', active: true },
+  { id: 'k3-hormuz', en: 'Strait of Hormuz', ko: '호르무즈 해협', category: '지정학', active: true },
+  { id: 'k3-iran', en: 'Iran UAE relations', ko: '이란 UAE 관계', category: '지정학', active: true },
+  { id: 'k3-saudi', en: 'Saudi UAE competition', ko: '사우디 UAE 경쟁', category: '지정학', active: true },
+  { id: 'k3-vision2031', en: 'UAE Vision 2031', ko: 'UAE 비전 2031', category: '정책', active: true },
+  { id: 'k3-goldenvisa', en: 'Golden Visa UAE', ko: '골든비자 UAE', category: '정책', active: true },
+  { id: 'k3-fatf', en: 'FATF UAE compliance', ko: 'FATF UAE 규제', category: '규제', active: true },
+  { id: 'k3-aml', en: 'AML KYC UAE', ko: 'AML KYC UAE', category: '규제', active: true },
+  { id: 'k3-chip', en: 'US chip export controls', ko: '미국 칩 수출 규제', category: '지정학', active: true },
+  { id: 'k3-itar', en: 'ITAR EAR defense export', ko: 'ITAR 방산 수출', category: '규제', active: true },
+  { id: 'k3-neom', en: 'NEOM Saudi', ko: '네옴 사우디', category: '지정학', active: true },
+  { id: 'k3-inflation', en: 'UAE inflation economy', ko: 'UAE 인플레이션', category: '거시경제', active: true },
+  { id: 'k3-aed-usd', en: 'AED USD peg', ko: 'AED USD 페깅', category: '거시경제', active: true },
+] as const
+
+const layer4Keywords: readonly Keyword[] = [
+  { id: 'k4-kepco', en: 'KEPCO UAE', ko: 'KEPCO UAE', category: '에너지', active: true },
+  { id: 'k4-samsung-eng', en: 'Samsung Engineering UAE', ko: '삼성엔지니어링 UAE', category: '건설', active: true },
+  { id: 'k4-sk-enc', en: 'SK ecoplant UAE', ko: 'SK에코플랜트 UAE', category: '건설', active: true },
+  { id: 'k4-hanwha', en: 'Hanwha UAE', ko: '한화 UAE', category: '금융/방산', active: true },
+  { id: 'k4-korea-uae', en: 'Korea UAE partnership', ko: '한국 UAE 파트너십', category: '외교', active: true },
+  { id: 'k4-k-beauty', en: 'K-beauty UAE', ko: 'K뷰티 UAE', category: '뷰티', active: true },
+  { id: 'k4-hallyu', en: 'Hallyu Korean Wave UAE', ko: '한류 UAE', category: '문화', active: true },
+  { id: 'k4-kpop', en: 'K-pop Middle East', ko: 'K팝 중동', category: '문화', active: true },
+  { id: 'k4-hyundai', en: 'Hyundai Kia UAE', ko: '현대기아 UAE', category: '자동차', active: true },
+  { id: 'k4-korean-food', en: 'Korean food halal UAE', ko: '한국 식품 할랄 UAE', category: '식품', active: true },
+  { id: 'k4-fab-seoul', en: 'FAB Seoul office', ko: 'FAB 서울 사무소', category: '금융', active: true },
+  { id: 'k4-hnwi', en: 'Korean HNWI Abu Dhabi', ko: '한국 HNWI 아부다비', category: '투자', active: true },
+  { id: 'k4-adfw', en: 'ADFW Abu Dhabi Finance Week', ko: 'ADFW 아부다비 금융주간', category: '이벤트', active: true },
+] as const
+
+export const KEYWORD_LAYERS: readonly KeywordLayer[] = [
+  {
+    layer: 1,
+    label: '핵심 인물/기관',
+    keywords: layer1Keywords,
+  },
+  {
+    layer: 2,
+    label: '산업/프로젝트',
+    keywords: layer2Keywords,
+  },
+  {
+    layer: 3,
+    label: '거시/지정학',
+    keywords: layer3Keywords,
+  },
+  {
+    layer: 4,
+    label: '한국 연관',
+    keywords: layer4Keywords,
+  },
+] as const
+
+export const ALL_KEYWORDS: readonly Keyword[] = [
+  ...layer1Keywords,
+  ...layer2Keywords,
+  ...layer3Keywords,
+  ...layer4Keywords,
+] as const
