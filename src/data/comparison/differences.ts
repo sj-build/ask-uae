@@ -94,7 +94,23 @@ export const mustKnowDifferences: readonly DifferenceItem[] = [
       description: '\uBC95\uC778\uC138 9~24%, VAT 10%',
       detail: '6\uB2E8\uACC4 \uB204\uC9C4\uC138\uC728 (6%~45%). \uBC95\uC778\uC138 4\uB2E8\uACC4 (9%~24%). \uBD80\uAC00\uAC00\uCE58\uC138 10%. \uC885\uD569\uBD80\uB3D9\uC0B0\uC138, \uC99D\uC5EC\uC138 \uB4F1 \uCD94\uAC00 \uC138\uAE08.',
     },
-    businessTip: 'Free Zone \uBC95\uC778 \uC124\uB9BD \uC2DC 0% \uBC95\uC778\uC138 \uD61C\uD0DD. \uB2E8, Transfer Pricing \uADDC\uC815 \uD655\uC778 \uD544\uC218.',
+    businessTip: 'Free Zone 법인 설립 시 0% 법인세 혜택. 단, Transfer Pricing 규정 확인 필수.',
+  },
+  {
+    id: 'real-estate',
+    icon: '🏠',
+    title: '부동산/모기지',
+    uae: {
+      label: '외국인 LTV 최대 80%',
+      description: '자유로운 외국인 부동산 소유',
+      detail: '첫 주택 ≤AED 5M: LTV 80%. 첫 주택 >AED 5M: LTV 70%. 투자용: LTV 60%. 오프플랜: LTV 50%. 최대 대출기간 25년. 2025.2월부터 거래비용 선지급 의무화.',
+    },
+    korea: {
+      label: '투기지역 LTV 40%',
+      description: '규제지역 대출 제한 강화',
+      detail: '서울 전역 투기과열지구 (2025.10 대책). 무주택자 LTV 40%, 유주택자 0%. 생애최초 70% (80%→하향). 15억 이하 최대 6억, 25억 초과 최대 2억.',
+    },
+    businessTip: 'UAE는 외국인 부동산 투자에 우호적. 한국은 강력한 규제로 대출이 어려움. UAE에서 부동산 투자 시 RERA 등록 확인 필수.',
   },
   {
     id: 'cultural-code',

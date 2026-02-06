@@ -24,12 +24,12 @@ export function Header({ onSearchClick }: HeaderProps) {
         <div className="max-w-[1700px] mx-auto flex items-center h-[56px] gap-4">
           {/* Logo & Title */}
           <div className="whitespace-nowrap flex items-center gap-3 group">
-            <div className="w-[3px] h-6 rounded-full bg-gradient-to-b from-gold via-gold to-gold2/50 group-hover:shadow-[0_0_12px_rgba(200,164,78,0.3)] transition-shadow duration-500" />
-            <div className="flex items-baseline gap-2.5">
-              <span className="font-display text-[18px] font-bold text-gradient-gold tracking-wide">
+            <div className="w-[3px] h-7 rounded-full bg-gradient-to-b from-gold via-gold to-gold2/50 group-hover:shadow-[0_0_12px_rgba(200,164,78,0.3)] transition-shadow duration-500" />
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-[20px] font-semibold text-gradient-gold tracking-tight">
                 {t.header.title}
               </span>
-              <span className="text-t4 font-sans text-[10px] font-medium tracking-tight hidden sm:inline opacity-70">
+              <span className="text-t4 font-sans text-[12px] font-medium tracking-tight hidden sm:inline opacity-60">
                 {t.header.subtitle}
               </span>
             </div>

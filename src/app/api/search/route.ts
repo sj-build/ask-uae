@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { SEARCH_SYSTEM_PROMPT, createEnhancedPrompt } from '@/lib/search-prompt'
-import { SearchRequestSchema } from '@/types/search'
+import { SearchRequestSchema, CONVERSATION_LIMITS } from '@/types/search'
 import { logQuestion } from '@/lib/question-logger'
 import {
   needsWebSearch,
@@ -76,57 +76,95 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
     }
 
     query = parseResult.data.query
+    const conversationHistory = parseResult.data.messages || []
+
+    // Calculate turn count (user messages = turns)
+    const turnCount = conversationHistory.filter(m => m.role === 'user').length
+
+    // Check conversation limits
+    if (turnCount >= CONVERSATION_LIMITS.MAX_TURNS) {
+      return NextResponse.json({
+        success: false,
+        error: '대화 제한에 도달했습니다. 새로운 대화를 시작해주세요.',
+        limitReached: true,
+        turnCount,
+      })
+    }
+
+    // Check context length
+    const contextLength = conversationHistory.reduce((acc, m) => acc + m.content.length, 0)
+    if (contextLength > CONVERSATION_LIMITS.MAX_CONTEXT_CHARS) {
+      return NextResponse.json({
+        success: false,
+        error: '대화가 너무 길어졌습니다. 새로운 대화를 시작해주세요.',
+        limitReached: true,
+        turnCount,
+      })
+    }
+
     const client = getAnthropicClient()
 
-    // Determine if we need enhanced search
-    const shouldWebSearch = needsWebSearch(query)
-    const shouldEcommerceSearch = needsEcommerceSearch(query)
+    // Determine if we need enhanced search (only on first query)
+    const isFirstQuery = conversationHistory.length === 0
+    const shouldWebSearch = isFirstQuery && needsWebSearch(query)
+    const shouldEcommerceSearch = isFirstQuery && needsEcommerceSearch(query)
     const brandName = extractBrandName(query)
 
-    // Build enhanced context (parallel fetching)
+    // Build enhanced context (parallel fetching) - only on first query
     let webSearchResults = ''
     let ecommerceResults = ''
 
-    const searchPromises: Promise<void>[] = []
+    if (isFirstQuery) {
+      const searchPromises: Promise<void>[] = []
 
-    if (shouldWebSearch) {
-      searchPromises.push(
-        searchUAE(query, 5).then((results) => {
-          webSearchResults = formatGoogleResults(results)
-        }).catch(() => {
-          // Silently fail - web search is optional enhancement
-        })
-      )
+      if (shouldWebSearch) {
+        searchPromises.push(
+          searchUAE(query, 5).then((results) => {
+            webSearchResults = formatGoogleResults(results)
+          }).catch(() => {
+            // Silently fail
+          })
+        )
+      }
+
+      if (shouldEcommerceSearch) {
+        searchPromises.push(
+          buildEcommerceContext(query, brandName || undefined).then((results) => {
+            ecommerceResults = results
+          }).catch(() => {
+            // Silently fail
+          })
+        )
+      }
+
+      await Promise.all(searchPromises)
     }
-
-    if (shouldEcommerceSearch) {
-      searchPromises.push(
-        buildEcommerceContext(query, brandName || undefined).then((results) => {
-          ecommerceResults = results
-        }).catch(() => {
-          // Silently fail
-        })
-      )
-    }
-
-    // Wait for all searches to complete
-    await Promise.all(searchPromises)
 
     // Use enhanced prompt if we have additional context
     const systemPrompt = (webSearchResults || ecommerceResults)
       ? createEnhancedPrompt(webSearchResults || undefined, ecommerceResults || undefined)
       : SEARCH_SYSTEM_PROMPT
 
+    // Build messages array for Claude
+    // For follow-up questions, we need to convert HTML responses to plain text
+    const claudeMessages = conversationHistory.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.role === 'assistant'
+        ? stripHtml(m.content)  // Convert HTML to plain text for context
+        : m.content,
+    }))
+
+    // Add current query
+    claudeMessages.push({
+      role: 'user' as const,
+      content: query,
+    })
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: query,
-        },
-      ],
+      messages: claudeMessages,
     })
 
     const html = message.content
@@ -136,6 +174,10 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
         }
         return acc
       }, '')
+
+    // Check if we're near the limit
+    const newTurnCount = turnCount + 1
+    const limitReached = newTurnCount >= CONVERSATION_LIMITS.MAX_TURNS
 
     // Log successful question (non-blocking)
     const responseTimeMs = Date.now() - startTime
@@ -148,7 +190,12 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
       // Ignore logging errors
     })
 
-    return NextResponse.json({ success: true, html })
+    return NextResponse.json({
+      success: true,
+      html,
+      turnCount: newTurnCount,
+      limitReached,
+    })
   } catch (error) {
     if (error instanceof SyntaxError) {
       return NextResponse.json(
@@ -201,4 +248,13 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
       { status: 500 }
     )
   }
+}
+
+// Helper to strip HTML tags for context
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 2000)  // Limit context per message
 }

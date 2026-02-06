@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Outfit, DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { LocaleProvider } from '@/i18n/provider'
 import './globals.css'
 
-const playfairDisplay = Playfair_Display({
-  variable: '--font-playfair-display',
+const outfit = Outfit({
+  variable: '--font-outfit',
   subsets: ['latin'],
-  weight: ['400', '700', '900'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 const dmSans = DM_Sans({
@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${playfairDisplay.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${outfit.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <LocaleProvider>{children}</LocaleProvider>
       </body>

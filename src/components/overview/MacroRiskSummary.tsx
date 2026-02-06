@@ -19,8 +19,8 @@ export function MacroRiskSummary() {
             className="p-3.5 bg-bg rounded-lg"
             style={{ borderLeftWidth: '3px', borderLeftColor: risk.borderColor }}
           >
-            <div className="font-bold text-[13px] mb-1.5" style={{ color: risk.titleColor }}>{risk.title}</div>
-            <div className="text-[11px] text-t2 leading-relaxed">{risk.description}</div>
+            <div className="font-bold text-sm mb-1" style={{ color: risk.titleColor }}>{risk.title}</div>
+            <div className="text-[12px] text-t2 leading-relaxed">{risk.summary}</div>
           </div>
         ))}
       </div>

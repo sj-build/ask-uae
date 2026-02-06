@@ -82,6 +82,22 @@ export const mustKnowDifferences: readonly DifferenceItem[] = [
     businessTip: 'Setting up a free zone entity can provide 0% corporate tax benefits. However, always verify Transfer Pricing regulations.',
   },
   {
+    id: 'real-estate',
+    icon: '🏠',
+    title: 'Real Estate/Mortgage',
+    uae: {
+      label: 'Expat LTV up to 80%',
+      description: 'Liberal foreign property ownership',
+      detail: 'First home ≤AED 5M: LTV 80%. First home >AED 5M: LTV 70%. Investment property: LTV 60%. Off-plan: LTV 50%. Max loan term 25 years. From Feb 2025, transaction fees must be paid upfront.',
+    },
+    korea: {
+      label: 'Speculative zones LTV 40%',
+      description: 'Strict lending restrictions',
+      detail: 'All Seoul designated speculative (Oct 2025 policy). First-time buyers LTV 40%, existing homeowners 0%. First-time purchaser 70% (down from 80%). Properties ≤1.5B: max 600M loan, >2.5B: max 200M loan.',
+    },
+    businessTip: 'UAE is foreign investor-friendly for real estate. Korea has strict regulations limiting mortgage access. When investing in UAE property, always verify RERA registration.',
+  },
+  {
     id: 'cultural-code',
     icon: '\u{1F54C}',
     title: 'Cultural Code',

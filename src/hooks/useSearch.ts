@@ -1,46 +1,194 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import type { SearchResponse } from '@/types/search'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import type { SearchResponse, ChatMessage } from '@/types/search'
+import { CONVERSATION_LIMITS } from '@/types/search'
+
+const STORAGE_KEY = 'uae-dashboard-conversations'
+const MAX_SAVED_CONVERSATIONS = 10
+
+export interface SavedConversation {
+  readonly id: string
+  readonly title: string
+  readonly messages: readonly ChatMessage[]
+  readonly createdAt: string
+  readonly updatedAt: string
+}
+
+function generateId(): string {
+  return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function loadConversations(): SavedConversation[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function saveConversations(conversations: SavedConversation[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    // Keep only the most recent conversations
+    const toSave = conversations.slice(0, MAX_SAVED_CONVERSATIONS)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
+  } catch {
+    // Ignore storage errors (quota exceeded, etc.)
+  }
+}
 
 export function useSearch() {
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<SearchResponse | null>(null)
-  const [history, setHistory] = useState<readonly string[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [limitReached, setLimitReached] = useState(false)
+  const [turnCount, setTurnCount] = useState(0)
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([])
   const abortRef = useRef<AbortController | null>(null)
+
+  // Load saved conversations on mount
+  useEffect(() => {
+    setSavedConversations(loadConversations())
+  }, [])
+
+  // Save current conversation when messages change
+  useEffect(() => {
+    if (messages.length === 0) return
+
+    const now = new Date().toISOString()
+    const firstUserMessage = messages.find(m => m.role === 'user')
+    const title = firstUserMessage?.content.slice(0, 50) || 'New Conversation'
+
+    setSavedConversations(prev => {
+      let updated: SavedConversation[]
+
+      if (currentConversationId) {
+        // Update existing conversation
+        updated = prev.map(conv =>
+          conv.id === currentConversationId
+            ? { ...conv, messages: [...messages], updatedAt: now }
+            : conv
+        )
+      } else {
+        // Create new conversation
+        const newId = generateId()
+        setCurrentConversationId(newId)
+        const newConv: SavedConversation = {
+          id: newId,
+          title,
+          messages: [...messages],
+          createdAt: now,
+          updatedAt: now,
+        }
+        updated = [newConv, ...prev]
+      }
+
+      saveConversations(updated)
+      return updated
+    })
+  }, [messages, currentConversationId])
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) return
+    if (limitReached) return
 
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
+    // Add user message to state immediately
+    const userMessage: ChatMessage = { role: 'user', content: query }
+    setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
-    setResult(null)
-
-    setHistory(prev => {
-      const filtered = prev.filter(q => q !== query)
-      return [query, ...filtered].slice(0, 8)
-    })
 
     try {
+      // Build messages for API (current messages + new user message)
+      const currentMessages = [...messages, userMessage]
+
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({
+          query,
+          messages: currentMessages,
+        }),
         signal: controller.signal,
       })
+
       const data: SearchResponse = await response.json()
-      setResult(data)
+
+      if (data.success && data.html) {
+        // Add assistant message
+        const assistantMessage: ChatMessage = { role: 'assistant', content: data.html }
+        setMessages(prev => [...prev, assistantMessage])
+        setTurnCount(data.turnCount ?? turnCount + 1)
+
+        // Check if limit reached
+        if (data.limitReached) {
+          setLimitReached(true)
+        }
+      } else {
+        // Remove the user message on error
+        setMessages(prev => prev.slice(0, -1))
+      }
     } catch (error) {
+      // Remove the user message on error
+      setMessages(prev => prev.slice(0, -1))
+
       if (error instanceof Error && error.name !== 'AbortError') {
-        setResult({ success: false, error: error.message })
+        console.error('Search error:', error.message)
       }
     } finally {
       setIsLoading(false)
     }
+  }, [messages, limitReached, turnCount])
+
+  const clearConversation = useCallback(() => {
+    setMessages([])
+    setLimitReached(false)
+    setTurnCount(0)
+    setCurrentConversationId(null)
   }, [])
 
-  return { isLoading, result, history, search } as const
+  const loadConversation = useCallback((conversationId: string) => {
+    const conversation = savedConversations.find(c => c.id === conversationId)
+    if (conversation) {
+      setMessages([...conversation.messages])
+      setCurrentConversationId(conversationId)
+      const userMessageCount = conversation.messages.filter(m => m.role === 'user').length
+      setTurnCount(userMessageCount)
+      setLimitReached(userMessageCount >= CONVERSATION_LIMITS.MAX_TURNS)
+    }
+  }, [savedConversations])
+
+  const deleteConversation = useCallback((conversationId: string) => {
+    setSavedConversations(prev => {
+      const updated = prev.filter(c => c.id !== conversationId)
+      saveConversations(updated)
+      return updated
+    })
+    if (currentConversationId === conversationId) {
+      clearConversation()
+    }
+  }, [currentConversationId, clearConversation])
+
+  const isNearLimit = turnCount >= CONVERSATION_LIMITS.WARNING_TURNS
+
+  return {
+    isLoading,
+    messages,
+    turnCount,
+    limitReached,
+    isNearLimit,
+    search,
+    clearConversation,
+    // Conversation history
+    savedConversations,
+    currentConversationId,
+    loadConversation,
+    deleteConversation,
+  } as const
 }

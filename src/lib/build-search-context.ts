@@ -29,7 +29,7 @@ function serializeOverview(): string {
   const govStr = governanceConcepts.map(g => `- ${g.title}: ${g.description}`).join('\n')
   const popStr = populationGroups.map(p => `- ${p.label}: ${p.count} (${p.percentage}%)`).join('\n')
   const hotStr = hotIssues.map(h => `- ${h.title}\n  Opportunities: ${h.opportunities.join('; ')}\n  Risks: ${h.risks.join('; ')}`).join('\n')
-  const riskStr = macroRisks.map(r => `- ${r.title}: ${r.description}`).join('\n')
+  const riskStr = macroRisks.map(r => `- ${r.title}: ${r.summary}`).join('\n')
 
   return `## UAE Overview
 ${statsStr}

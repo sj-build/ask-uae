@@ -32,9 +32,12 @@
   --color-brd2: rgba(200, 164, 78, 0.25);
 
   /* Fonts */
-  --font-display: var(--font-playfair-display);
+  --font-display: var(--font-outfit);
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains-mono);
+
+  /* Base font size increase */
+  --font-size-base: 14px;
 
   /* Animation */
   --animate-fade-in: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -43,6 +46,7 @@
   --animate-scale-in: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-blur-in: blur-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-float: subtle-float 4s ease-in-out infinite;
+  --animate-slide-in-left: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ============================================
@@ -79,6 +83,17 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -155,6 +170,7 @@ html {
 
 body {
   font-family: var(--font-sans), sans-serif;
+  font-size: 15px;
   background: var(--color-bg);
   color: var(--color-t1);
   line-height: 1.6;

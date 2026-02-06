@@ -119,57 +119,38 @@ function NewsHeadlineItem({ item, p, locale }: NewsHeadlineItemProps) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-start gap-3 py-2.5 px-1 rounded-lg transition-colors duration-150 hover:bg-bg4/50 group"
+      className="flex items-start gap-3 py-3 px-2 rounded-lg transition-colors duration-150 hover:bg-bg4/50 group border-b border-brd/30 last:border-0"
     >
-      <span className="shrink-0 mt-0.5 flex flex-col gap-1">
-        <span className="flex items-center gap-1">
-          <span
-            className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${item.source === 'naver' ? 'bg-accent-green/15 text-accent-green border-accent-green/20' : 'bg-accent-blue/15 text-accent-blue border-accent-blue/20'}`}
-          >
-            {item.source === 'naver' ? 'KR' : 'EN'}
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${getPublisherBadgeStyle(item.publisher)}`}
-          >
-            {item.publisher}
-          </span>
+      {/* Left: Unified badge column */}
+      <div className="shrink-0 w-[72px] flex flex-col items-start gap-1">
+        <span
+          className={`w-full text-center px-2 py-1 rounded text-[11px] font-bold ${item.source === 'naver' ? 'bg-accent-green/15 text-accent-green' : 'bg-accent-blue/15 text-accent-blue'}`}
+        >
+          {item.publisher.length > 10 ? item.publisher.slice(0, 8) + '..' : item.publisher}
         </span>
         {category && (
           <span
-            className={`px-2 py-0.5 rounded text-[9px] font-bold border text-center ${getCategoryBadgeStyle(category)}`}
+            className={`w-full text-center px-2 py-0.5 rounded text-[10px] font-semibold ${getCategoryBadgeStyle(category)}`}
           >
             {category}
           </span>
         )}
-      </span>
+      </div>
 
+      {/* Right: Content */}
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] text-t1 font-medium leading-snug group-hover:text-gold transition-colors duration-150 line-clamp-2">
+        <div className="text-[14px] text-t1 font-medium leading-snug group-hover:text-gold transition-colors duration-150 line-clamp-2">
           {item.title}
         </div>
 
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[10px] text-t4">
+          <span className="text-[11px] text-t4">
             {formatRelativeDate(item.publishedAt, p, locale)}
           </span>
-
-          {item.tags.length > 0 && (
-            <div className="flex items-center gap-1 overflow-hidden">
-              {item.tags.slice(0, 2).map((tag) => (
-                <span
-                  key={tag}
-                  className="px-1.5 py-0 rounded text-[9px] text-t4 bg-bg3 border border-brd truncate max-w-[80px]"
-                >
-                  {tag.includes(':') ? tag.split(':')[1] : tag}
-                </span>
-              ))}
-              {item.tags.length > 2 && (
-                <span className="text-[9px] text-t4">
-                  +{item.tags.length - 2}
-                </span>
-              )}
-            </div>
-          )}
+          <span className="text-t4">·</span>
+          <span className={`text-[11px] font-medium ${item.source === 'naver' ? 'text-accent-green' : 'text-accent-blue'}`}>
+            {item.source === 'naver' ? 'KR' : 'EN'}
+          </span>
         </div>
       </div>
     </a>
@@ -237,13 +218,13 @@ export function NewsHeadlines() {
 
   const headerContent = (
     <div className="flex items-center gap-3 flex-1">
-      <span className="text-lg">📰</span>
+      <span className="text-xl">📰</span>
       <div>
-        <div className="font-bold text-[15px] text-t1">{p.newsTitle}</div>
-        <div className="text-[11px] text-t3">{p.newsSubtitle}</div>
+        <div className="font-bold text-base text-t1">{p.newsTitle}</div>
+        <div className="text-[12px] text-t3">{p.newsSubtitle}</div>
       </div>
       {!isLoading && !error && newsItems.length > 0 && (
-        <span className="ml-auto mr-2 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/10 text-gold border border-gold/20">
+        <span className="ml-auto mr-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gold/10 text-gold border border-gold/20">
           {newsItems.length}{p.newsCount}
         </span>
       )}
@@ -268,10 +249,10 @@ export function NewsHeadlines() {
             <NewsHeadlineItem key={item.id} item={item} p={p} locale={locale} />
           ))}
 
-          <div className="pt-3 border-t border-brd mt-3 flex justify-end">
+          <div className="pt-3 mt-3 flex justify-end">
             <Link
               href="/news"
-              className="flex items-center gap-1 text-[10px] text-t4 transition-colors hover:text-t2"
+              className="flex items-center gap-1 text-[12px] text-t4 transition-colors hover:text-t2"
             >
               {p.newsMore}
               <span>→</span>
