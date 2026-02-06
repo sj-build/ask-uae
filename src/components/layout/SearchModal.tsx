@@ -48,7 +48,7 @@ function formatRelativeTime(dateString: string): string {
 export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const {
     isLoading,
     messages,
@@ -70,7 +70,13 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
 
   const hasAssistantResponse = messages.some(m => m.role === 'assistant')
 
-  const loadingMessages = [
+  const loadingMessages = locale === 'en' ? [
+    { text: 'AI is analyzing dashboard data...', subtext: 'Just a moment 🔍' },
+    { text: 'This is quite a complex question...', subtext: 'Time for a sip of coffee ☕' },
+    { text: 'Almost there!', subtext: 'UAE expert is typing furiously... ⌨️' },
+    { text: 'Organizing the data...', subtext: 'Just a bit more for the perfect answer! 💪' },
+    { text: 'Finishing up!', subtext: 'A great answer is coming ✨' },
+  ] : [
     { text: 'AI가 대시보드 데이터를 분석하고 있습니다...', subtext: '잠시만요 🔍' },
     { text: '생각보다 복잡한 질문이네요...', subtext: '커피 한 모금 하실 시간 ☕' },
     { text: '거의 다 됐어요!', subtext: 'UAE 전문가가 열심히 타이핑 중... ⌨️' },
