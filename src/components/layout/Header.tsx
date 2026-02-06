@@ -12,39 +12,57 @@ export function Header({ onSearchClick }: HeaderProps) {
 
   return (
     <div className="sticky top-0 z-50">
-      {/* UAE flag accent line: green-white-black with red accent */}
-      <div className="h-[2px] flex">
-        <div className="flex-1 bg-gradient-to-r from-transparent via-[#00732f]/50 to-[#00732f]/60" />
-        <div className="w-16 bg-gradient-to-r from-[#00732f]/60 via-white/30 to-white/30" />
-        <div className="flex-1 bg-gradient-to-r from-white/30 via-gold/50 to-transparent" />
+      {/* UAE flag accent line with animated gradient */}
+      <div className="h-[2px] flex relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/20 to-transparent animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
+        <div className="flex-1 bg-gradient-to-r from-transparent via-[#00732f]/40 to-[#00732f]/50" />
+        <div className="w-20 bg-gradient-to-r from-[#00732f]/50 via-white/25 to-white/25" />
+        <div className="flex-1 bg-gradient-to-r from-white/25 via-gold/40 to-transparent" />
       </div>
-      <div className="bg-bg/92 backdrop-blur-2xl border-b border-brd/60 px-6">
-        <div className="max-w-[1700px] mx-auto flex items-center h-[52px] gap-4">
-          <div className="whitespace-nowrap flex items-center gap-3">
-            <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-gold to-gold2/60" />
-            <div>
-              <span className="font-display text-[17px] font-bold text-gold tracking-wide">{t.header.title}</span>
-              <span className="text-t4 font-sans text-[10px] font-normal ml-2.5 tracking-tight hidden sm:inline">{t.header.subtitle}</span>
+
+      <header className="glass-strong px-6">
+        <div className="max-w-[1700px] mx-auto flex items-center h-[56px] gap-4">
+          {/* Logo & Title */}
+          <div className="whitespace-nowrap flex items-center gap-3 group">
+            <div className="w-[3px] h-6 rounded-full bg-gradient-to-b from-gold via-gold to-gold2/50 group-hover:shadow-[0_0_12px_rgba(200,164,78,0.3)] transition-shadow duration-500" />
+            <div className="flex items-baseline gap-2.5">
+              <span className="font-display text-[18px] font-bold text-gradient-gold tracking-wide">
+                {t.header.title}
+              </span>
+              <span className="text-t4 font-sans text-[10px] font-medium tracking-tight hidden sm:inline opacity-70">
+                {t.header.subtitle}
+              </span>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+
+          {/* Actions */}
+          <div className="ml-auto flex items-center gap-3">
+            {/* Language Toggle */}
             <button
               onClick={() => setLocale(locale === 'ko' ? 'en' as Locale : 'ko' as Locale)}
-              className="px-2.5 py-1 rounded-md text-[10px] font-semibold tracking-wider text-t4 hover:text-gold hover:bg-gold/5 transition-all duration-300 uppercase"
+              className="relative px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest text-t3 hover:text-gold bg-bg3/50 hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all duration-300 uppercase overflow-hidden group"
             >
-              {locale === 'ko' ? 'EN' : 'KO'}
+              <span className="relative z-10">{locale === 'ko' ? 'EN' : 'KO'}</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             </button>
-            <div className="w-px h-4 bg-brd/80" />
+
+            <div className="w-px h-5 bg-brd/60" />
+
+            {/* Search Button */}
             <button
               onClick={onSearchClick}
-              className="group px-3.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gold/8 text-gold/90 border border-gold/15 hover:bg-gold/15 hover:text-gold hover:border-gold/30 hover:shadow-[0_0_24px_rgba(200,164,78,0.1)] transition-all duration-300 whitespace-nowrap"
+              className="btn-premium group px-4 py-2 rounded-lg text-[11px] font-semibold bg-gold/10 text-gold border border-gold/20 hover:bg-gold/15 hover:border-gold/35 whitespace-nowrap"
             >
-              <span className="mr-1.5 opacity-60 group-hover:opacity-100 transition-opacity">&#x2315;</span>
-              {t.nav.search}
+              <span className="inline-flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span>{t.nav.search}</span>
+              </span>
             </button>
           </div>
         </div>
-      </div>
+      </header>
     </div>
   )
 }

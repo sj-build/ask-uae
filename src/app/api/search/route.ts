@@ -1,9 +1,56 @@
 import { NextResponse } from 'next/server'
 import { getAnthropicClient } from '@/lib/anthropic'
-import { SEARCH_SYSTEM_PROMPT } from '@/lib/search-prompt'
+import { SEARCH_SYSTEM_PROMPT, createEnhancedPrompt } from '@/lib/search-prompt'
 import { SearchRequestSchema } from '@/types/search'
 import { logQuestion } from '@/lib/question-logger'
+import {
+  needsWebSearch,
+  needsEcommerceSearch,
+  extractBrandName,
+} from '@/lib/web-search'
+import { searchUAE, formatGoogleResults } from '@/lib/google-search'
+import { fetchAmazonUAEProducts, formatAmazonResults } from '@/lib/keepa-amazon'
 import type { SearchResponse } from '@/types/search'
+
+// Build e-commerce context with direct links + live Amazon data
+async function buildEcommerceContext(query: string, brandName?: string): Promise<string> {
+  const brand = brandName || query
+
+  // Try to fetch live Amazon UAE data
+  let amazonLiveData = ''
+  try {
+    const amazonProducts = await fetchAmazonUAEProducts(brand, 5)
+    if (amazonProducts.length > 0) {
+      amazonLiveData = formatAmazonResults(amazonProducts)
+    }
+  } catch (error) {
+    console.warn('Failed to fetch Amazon data:', error)
+  }
+
+  const staticLinks = `
+## UAE 이커머스 채널 검색 링크
+
+브랜드/제품 "${brand}"에 대한 UAE 주요 이커머스 채널:
+
+### Amazon UAE
+- 검색 링크: https://www.amazon.ae/s?k=${encodeURIComponent(brand)}
+- UAE 최대 이커머스 플랫폼, 프라임 배송 지원
+
+### Noon
+- 검색 링크: https://www.noon.com/uae-en/search/?q=${encodeURIComponent(brand)}
+- 두바이 기반 중동 최대 로컬 이커머스
+
+### Namshi
+- 검색 링크: https://www.namshi.com/uae-en/search/${encodeURIComponent(brand)}/
+- 패션/뷰티 전문 이커머스
+
+### Carrefour UAE
+- 검색 링크: https://www.carrefouruae.com/mafuae/en/search?keyword=${encodeURIComponent(brand)}
+- 대형마트 온라인몰
+`
+
+  return amazonLiveData + staticLinks
+}
 
 export async function POST(request: Request): Promise<NextResponse<SearchResponse>> {
   const startTime = Date.now()
@@ -31,10 +78,49 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
     query = parseResult.data.query
     const client = getAnthropicClient()
 
+    // Determine if we need enhanced search
+    const shouldWebSearch = needsWebSearch(query)
+    const shouldEcommerceSearch = needsEcommerceSearch(query)
+    const brandName = extractBrandName(query)
+
+    // Build enhanced context (parallel fetching)
+    let webSearchResults = ''
+    let ecommerceResults = ''
+
+    const searchPromises: Promise<void>[] = []
+
+    if (shouldWebSearch) {
+      searchPromises.push(
+        searchUAE(query, 5).then((results) => {
+          webSearchResults = formatGoogleResults(results)
+        }).catch(() => {
+          // Silently fail - web search is optional enhancement
+        })
+      )
+    }
+
+    if (shouldEcommerceSearch) {
+      searchPromises.push(
+        buildEcommerceContext(query, brandName || undefined).then((results) => {
+          ecommerceResults = results
+        }).catch(() => {
+          // Silently fail
+        })
+      )
+    }
+
+    // Wait for all searches to complete
+    await Promise.all(searchPromises)
+
+    // Use enhanced prompt if we have additional context
+    const systemPrompt = (webSearchResults || ecommerceResults)
+      ? createEnhancedPrompt(webSearchResults || undefined, ecommerceResults || undefined)
+      : SEARCH_SYSTEM_PROMPT
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
-      system: SEARCH_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',

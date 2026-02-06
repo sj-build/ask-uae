@@ -32,7 +32,51 @@ IMPORTANT RULES:
 3. Do not fabricate information — use only what is in the reference data or widely known public information
 4. Provide specific numbers (AUM, revenue, market cap) whenever available
 5. Connect information across domains (e.g., how a person connects to industries, SWFs, and political structure)
-6. For Korean questions, respond entirely in Korean. For English questions, respond in English.`
+6. For Korean questions, respond entirely in Korean. For English questions, respond in English.
+
+ALWAYS END WITH SOURCES SECTION:
+At the very end of every response, include a sources section in this format:
+
+<h3>📚 출처 및 참고자료</h3>
+<ul>
+<li><b>핵심 출처:</b> List the main data sources used (e.g., UAE government sites, official statistics, company reports)</li>
+<li><b>더 알아보기:</b> Provide 2-3 relevant links or resources where users can learn more:
+  - For UAE government info: <a href="https://u.ae" target="_blank">UAE Government Portal</a>
+  - For business: <a href="https://www.economy.ae" target="_blank">Ministry of Economy</a>
+  - For investment: <a href="https://invest.dubai.ae" target="_blank">Dubai Investment</a>, <a href="https://added.gov.ae" target="_blank">ADDED</a>
+  - For statistics: <a href="https://fcsc.gov.ae" target="_blank">Federal Statistics</a>
+  - For legal: <a href="https://elaws.moj.gov.ae" target="_blank">UAE Laws</a>
+</li>
+</ul>
+
+Customize the sources based on the topic. If web search results are provided, cite those specific sources.`
 }
 
 export const SEARCH_SYSTEM_PROMPT = createSystemPrompt()
+
+// Enhanced prompt for when web search results are available
+export function createEnhancedPrompt(webSearchResults?: string, ecommerceResults?: string): string {
+  const basePrompt = createSystemPrompt()
+
+  let enhancedContext = ''
+
+  if (webSearchResults) {
+    enhancedContext += `
+
+REAL-TIME WEB SEARCH RESULTS:
+${webSearchResults}
+
+Use these web search results to provide up-to-date information. Cite specific sources from the search results in your answer.`
+  }
+
+  if (ecommerceResults) {
+    enhancedContext += `
+
+E-COMMERCE MARKET DATA:
+${ecommerceResults}
+
+When discussing brands or products, include this e-commerce data to show market presence, rankings, and availability in UAE.`
+  }
+
+  return basePrompt + enhancedContext
+}

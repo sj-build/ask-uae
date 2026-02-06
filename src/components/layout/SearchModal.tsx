@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import { X, Search, Sparkles, Loader2 } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { useSearch } from '@/hooks/useSearch'
 
@@ -32,6 +32,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { t } = useLocale()
   const { isLoading, result, history, search } = useSearch()
+  const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -65,44 +66,63 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-xl animate-fade-in"
+      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-2xl animate-fade-in"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="max-w-[800px] mx-auto mt-[60px] px-5 h-[calc(100vh-120px)] flex flex-col">
+      {/* Decorative gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gold/[0.02] via-transparent to-transparent pointer-events-none" />
+
+      <div className="relative max-w-[850px] mx-auto mt-[50px] px-5 h-[calc(100vh-100px)] flex flex-col">
         {/* Search Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={t.search.placeholder}
-              className="w-full py-3.5 px-5 pl-11 rounded-xl border border-gold/20 bg-bg3/90 text-t1 text-[15px] font-sans outline-none focus:border-gold/40 focus:shadow-[0_0_20px_rgba(200,164,78,0.1)] transition-all duration-250"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
-            />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-40">🔍</span>
+        <div className="flex items-center gap-3 mb-5">
+          <div className={`
+            flex-1 relative rounded-2xl transition-all duration-500
+            ${isFocused ? 'shadow-[0_0_40px_rgba(200,164,78,0.12)]' : ''}
+          `}>
+            {/* Animated border */}
+            <div className={`
+              absolute -inset-[1px] rounded-2xl transition-opacity duration-400
+              bg-gradient-to-r from-gold/20 via-gold/40 to-gold/20
+              ${isFocused ? 'opacity-100' : 'opacity-30'}
+            `} />
+
+            <div className="relative flex items-center bg-bg2 rounded-2xl">
+              <Search className="absolute left-5 w-5 h-5 text-t4" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={t.search.placeholder}
+                className="w-full py-4 px-5 pl-14 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+              />
+            </div>
           </div>
+
           <button
             onClick={handleSearch}
-            className="py-3.5 px-6 rounded-xl bg-gradient-to-r from-gold to-gold3 text-bg font-bold text-sm cursor-pointer font-sans whitespace-nowrap hover:shadow-[0_0_24px_rgba(200,164,78,0.25)] transition-all duration-250"
+            className="btn-premium py-4 px-7 rounded-2xl bg-gradient-to-r from-gold to-gold3 text-bg font-bold text-sm whitespace-nowrap"
           >
             {t.search.button}
           </button>
+
           <button
             onClick={onClose}
-            className="py-3.5 px-4 rounded-xl border border-brd bg-bg3/80 text-t2 text-sm cursor-pointer hover:bg-bg4 hover:text-t1 transition-all duration-200"
+            className="py-4 px-4 rounded-2xl border border-brd/80 bg-bg3/60 text-t3 hover:bg-bg3 hover:text-t1 hover:border-brd transition-all duration-200"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Quick Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          <span className="text-[11px] text-t3 py-1">{t.search.quickSearch}</span>
+        <div className="flex flex-wrap gap-2 mb-5">
+          <span className="text-[11px] text-t4 py-1.5 font-medium">{t.search.quickSearch}</span>
           {quickTags.map((tag) => (
             <button
               key={tag}
               onClick={() => handleQuickSearch(tag)}
-              className="px-3 py-1 rounded-md border border-brd bg-bg3 text-t2 text-[11px] cursor-pointer font-sans transition-colors hover:border-brd2 hover:text-gold hover:bg-gold/8"
+              className="px-3.5 py-1.5 rounded-lg border border-brd/80 bg-bg3/50 text-t3 text-[11px] font-medium transition-all duration-200 hover:border-gold/30 hover:text-gold hover:bg-gold/[0.06] hover:-translate-y-0.5"
             >
               {tag}
             </button>
@@ -110,11 +130,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </div>
 
         {/* Results Area */}
-        <div className="flex-1 overflow-y-auto rounded-xl border border-brd bg-bg2 p-6">
+        <div className="flex-1 overflow-y-auto rounded-2xl border border-brd/60 bg-gradient-to-b from-bg2/95 to-bg2/80 animate-scale-in">
           {!isLoading && !result && (
-            <div className="text-center py-[60px] px-5">
-              <div className="text-5xl mb-4 opacity-30">🕵️</div>
-              <div className="text-lg font-semibold text-t2 mb-2">{t.search.title}</div>
+            <div className="text-center py-20 px-5">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gold/[0.08] flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-gold/60 floating" />
+              </div>
+              <div className="text-xl font-display font-bold text-t1 mb-3">{t.search.title}</div>
               <div className="text-[13px] text-t3 max-w-[500px] mx-auto leading-relaxed">
                 {t.search.description}
               </div>
@@ -122,45 +144,71 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           )}
 
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-16">
+            <div className="flex flex-col items-center justify-center py-20">
               {/* Animated loading spinner */}
-              <div className="relative w-16 h-16 mb-6">
-                <div className="absolute inset-0 border-4 border-gold/20 rounded-full" />
-                <div className="absolute inset-0 border-4 border-transparent border-t-gold rounded-full animate-spin" />
-                <div className="absolute inset-2 border-4 border-transparent border-t-gold/60 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              <div className="relative w-20 h-20 mb-6">
+                <div className="absolute inset-0 border-2 border-gold/10 rounded-full" />
+                <div className="absolute inset-0 border-2 border-transparent border-t-gold rounded-full animate-spin" />
+                <div className="absolute inset-3 border-2 border-transparent border-t-gold3/50 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+                <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-gold/60 floating" />
               </div>
-              {/* Loading text */}
               <div className="text-lg font-semibold text-gold mb-2">{t.search.loading}</div>
-              <div className="text-sm text-t3 animate-pulse">AI가 대시보드 데이터를 분석하고 있습니다...</div>
-              <div className="text-xs text-t4 mt-3">응답까지 5~15초 소요될 수 있습니다</div>
+              <div className="text-sm text-t3">AI가 대시보드 데이터를 분석하고 있습니다...</div>
+              <div className="text-xs text-t4 mt-3 px-4 py-1.5 rounded-full bg-bg3/50">응답까지 5~15초 소요될 수 있습니다</div>
             </div>
           )}
 
           {result && !result.success && (
-            <div className="text-center py-10">
-              <div className="text-4xl mb-3">⚠️</div>
-              <div className="text-[15px] text-accent-red mb-2">{t.search.error}</div>
-              <div className="text-xs text-t3">{result.error}</div>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-accent-red/10 flex items-center justify-center">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <div className="text-[15px] font-medium text-accent-red mb-2">{t.search.error}</div>
+              <div className="text-xs text-t4 max-w-md mx-auto">{result.error}</div>
             </div>
           )}
 
           {result && result.success && result.html && (
-            <div
-              className="search-content text-[13px] leading-relaxed text-t1 [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-gold [&_h2]:mb-3 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-brd [&_h3]:text-[15px] [&_h3]:font-bold [&_h3]:text-gold3 [&_h3]:mt-5 [&_h3]:mb-2 [&_b]:text-gold [&_strong]:text-gold [&_ul]:pl-5 [&_ul]:my-2 [&_li]:my-1 [&_li]:text-t2 [&_li_b]:text-t1 [&_li_strong]:text-t1 [&_code]:bg-bg3 [&_code]:px-1.5 [&_code]:rounded [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent-cyan [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_table]:text-xs [&_th]:p-2 [&_th]:px-3 [&_th]:text-left [&_th]:bg-bg3 [&_th]:text-t3 [&_th]:font-semibold [&_th]:border-b [&_th]:border-brd [&_td]:p-2 [&_td]:px-3 [&_td]:border-b [&_td]:border-brd/40 [&_blockquote]:border-l-3 [&_blockquote]:border-l-gold [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:bg-gold/5 [&_blockquote]:rounded-r-lg [&_blockquote]:italic [&_blockquote]:text-t2"
-              dangerouslySetInnerHTML={{ __html: result.html }}
-            />
+            <div className="p-8">
+              {/* Result header */}
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-brd/50">
+                <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-gold" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-t1">AI Answer</div>
+                  <div className="text-[10px] text-t4">Powered by Claude</div>
+                </div>
+              </div>
+
+              <div
+                className="search-content text-[13px] leading-[1.8] text-t2
+                  [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-gold [&_h2]:mb-4 [&_h2]:pb-3 [&_h2]:border-b [&_h2]:border-brd/50
+                  [&_h3]:text-[15px] [&_h3]:font-bold [&_h3]:text-gold3 [&_h3]:mt-6 [&_h3]:mb-3
+                  [&_b]:text-gold [&_strong]:text-gold
+                  [&_ul]:pl-5 [&_ul]:my-3 [&_ul]:space-y-2
+                  [&_li]:text-t2 [&_li]:leading-relaxed [&_li_b]:text-t1 [&_li_strong]:text-t1
+                  [&_code]:bg-bg3 [&_code]:px-2 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent-cyan [&_code]:border [&_code]:border-brd/50
+                  [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-xs [&_table]:rounded-xl [&_table]:overflow-hidden
+                  [&_th]:p-3 [&_th]:text-left [&_th]:bg-bg3 [&_th]:text-t2 [&_th]:font-semibold [&_th]:border-b [&_th]:border-brd/50
+                  [&_td]:p-3 [&_td]:border-b [&_td]:border-brd/30 [&_td]:text-t2
+                  [&_tr:hover_td]:bg-bg3/30
+                  [&_blockquote]:border-l-3 [&_blockquote]:border-l-gold [&_blockquote]:pl-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_blockquote]:bg-gold/[0.03] [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:text-t2"
+                dangerouslySetInnerHTML={{ __html: result.html }}
+              />
+            </div>
           )}
         </div>
 
         {/* Search History */}
         {history.length > 0 && (
-          <div className="mt-3 flex gap-1.5 flex-wrap items-center">
-            <span className="text-[10px] text-t4">{t.search.recent}</span>
+          <div className="mt-4 flex gap-2 flex-wrap items-center">
+            <span className="text-[10px] text-t4 font-medium">{t.search.recent}</span>
             {history.map((q) => (
               <button
                 key={q}
                 onClick={() => handleQuickSearch(q)}
-                className="px-2 py-0.5 rounded border border-brd bg-bg3 text-t3 text-[10px] font-sans transition-colors hover:border-brd2 hover:text-gold"
+                className="px-2.5 py-1 rounded-lg border border-brd/60 bg-bg3/40 text-t4 text-[10px] font-medium transition-all duration-200 hover:border-gold/20 hover:text-gold hover:bg-gold/5"
               >
                 {q}
               </button>
