@@ -65,6 +65,39 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
   const [isFocused, setIsFocused] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const hasExecutedInitialQuery = useRef(false)
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
+  const loadingStartTime = useRef<number | null>(null)
+
+  const hasAssistantResponse = messages.some(m => m.role === 'assistant')
+
+  const loadingMessages = [
+    { text: 'AI가 대시보드 데이터를 분석하고 있습니다...', subtext: '잠시만요 🔍' },
+    { text: '생각보다 복잡한 질문이네요...', subtext: '커피 한 모금 하실 시간 ☕' },
+    { text: '거의 다 됐어요!', subtext: 'UAE 전문가가 열심히 타이핑 중... ⌨️' },
+    { text: '데이터를 정리하고 있습니다...', subtext: '완벽한 답변을 위해 조금만 더! 💪' },
+    { text: '마무리 중입니다!', subtext: '좋은 답변이 올 거예요 ✨' },
+  ]
+
+  // Update loading message every 5 seconds
+  useEffect(() => {
+    if (isLoading && !hasAssistantResponse) {
+      if (!loadingStartTime.current) {
+        loadingStartTime.current = Date.now()
+        setLoadingMessageIndex(0)
+      }
+
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - (loadingStartTime.current || Date.now())
+        const newIndex = Math.min(Math.floor(elapsed / 5000), loadingMessages.length - 1)
+        setLoadingMessageIndex(newIndex)
+      }, 1000)
+
+      return () => clearInterval(interval)
+    } else {
+      loadingStartTime.current = null
+      setLoadingMessageIndex(0)
+    }
+  }, [isLoading, hasAssistantResponse, loadingMessages.length])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -141,7 +174,6 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
   if (!isOpen) return null
 
   const hasMessages = messages.length > 0
-  const hasAssistantResponse = messages.some(m => m.role === 'assistant')
   const hasSavedConversations = savedConversations.length > 0
   const showInitialLoading = isLoading && !hasAssistantResponse
 
@@ -334,9 +366,20 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-gold/60 floating" />
                 </div>
                 <div className="text-lg font-semibold text-gold mb-2">{t.search.loading}</div>
-                <div className="text-sm text-t3">AI가 대시보드 데이터를 분석하고 있습니다...</div>
-                <div className="text-xs text-t4 mt-3 px-4 py-1.5 rounded-full bg-bg3/50">응답까지 5~15초 소요될 수 있습니다</div>
-                <div className="text-xs text-t4 mt-2 animate-pulse">조금 오래 걸린다면 잠시만 더 기다려주세요!</div>
+                <div className="text-sm text-t3 transition-all duration-300">{loadingMessages[loadingMessageIndex].text}</div>
+                <div className="text-xs text-t4 mt-3 px-4 py-1.5 rounded-full bg-bg3/50 transition-all duration-300">
+                  {loadingMessages[loadingMessageIndex].subtext}
+                </div>
+                <div className="flex items-center gap-1 mt-4">
+                  {loadingMessages.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        idx <= loadingMessageIndex ? 'bg-gold' : 'bg-bg3'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
