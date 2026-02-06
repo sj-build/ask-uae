@@ -27,6 +27,7 @@ const quickTags = [
 interface SearchModalProps {
   readonly isOpen: boolean
   readonly onClose: () => void
+  readonly initialQuery?: string
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -44,7 +45,7 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }
 
-export function SearchModal({ isOpen, onClose }: SearchModalProps) {
+export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { t } = useLocale()
@@ -70,6 +71,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+
+  // Handle initial query from quick questions
+  useEffect(() => {
+    if (isOpen && initialQuery && !isLoading && messages.length === 0) {
+      search(initialQuery)
+    }
+  }, [isOpen, initialQuery, isLoading, messages.length, search])
 
   useEffect(() => {
     if (isOpen) {

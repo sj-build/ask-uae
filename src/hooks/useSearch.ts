@@ -48,6 +48,12 @@ export function useSearch() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([])
   const abortRef = useRef<AbortController | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
+
+  // Sync ref with state
+  useEffect(() => {
+    conversationIdRef.current = currentConversationId
+  }, [currentConversationId])
 
   // Load saved conversations on mount
   useEffect(() => {
@@ -62,34 +68,40 @@ export function useSearch() {
     const firstUserMessage = messages.find(m => m.role === 'user')
     const title = firstUserMessage?.content.slice(0, 50) || 'New Conversation'
 
-    setSavedConversations(prev => {
-      let updated: SavedConversation[]
+    const existingId = conversationIdRef.current
 
-      if (currentConversationId) {
-        // Update existing conversation
-        updated = prev.map(conv =>
-          conv.id === currentConversationId
+    if (existingId) {
+      // Update existing conversation
+      setSavedConversations(prev => {
+        const updated = prev.map(conv =>
+          conv.id === existingId
             ? { ...conv, messages: [...messages], updatedAt: now }
             : conv
         )
-      } else {
-        // Create new conversation
-        const newId = generateId()
-        setCurrentConversationId(newId)
-        const newConv: SavedConversation = {
-          id: newId,
-          title,
-          messages: [...messages],
-          createdAt: now,
-          updatedAt: now,
-        }
-        updated = [newConv, ...prev]
+        saveConversations(updated)
+        return updated
+      })
+    } else {
+      // Create new conversation
+      const newId = generateId()
+      conversationIdRef.current = newId
+      setCurrentConversationId(newId)
+
+      const newConv: SavedConversation = {
+        id: newId,
+        title,
+        messages: [...messages],
+        createdAt: now,
+        updatedAt: now,
       }
 
-      saveConversations(updated)
-      return updated
-    })
-  }, [messages, currentConversationId])
+      setSavedConversations(prev => {
+        const updated = [newConv, ...prev]
+        saveConversations(updated)
+        return updated
+      })
+    }
+  }, [messages])
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) return
@@ -151,13 +163,15 @@ export function useSearch() {
     setLimitReached(false)
     setTurnCount(0)
     setCurrentConversationId(null)
+    conversationIdRef.current = null
   }, [])
 
   const loadConversation = useCallback((conversationId: string) => {
     const conversation = savedConversations.find(c => c.id === conversationId)
     if (conversation) {
-      setMessages([...conversation.messages])
+      conversationIdRef.current = conversationId
       setCurrentConversationId(conversationId)
+      setMessages([...conversation.messages])
       const userMessageCount = conversation.messages.filter(m => m.role === 'user').length
       setTurnCount(userMessageCount)
       setLimitReached(userMessageCount >= CONVERSATION_LIMITS.MAX_TURNS)

@@ -22,9 +22,10 @@ const QUICK_QUESTIONS_EN = [
 
 interface AskMeHeroProps {
   readonly onOpenSearch: () => void
+  readonly onQuickQuestion: (question: string) => void
 }
 
-export function AskMeHero({ onOpenSearch }: AskMeHeroProps) {
+export function AskMeHero({ onOpenSearch, onQuickQuestion }: AskMeHeroProps) {
   const { locale } = useLocale()
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -39,9 +40,9 @@ export function AskMeHero({ onOpenSearch }: AskMeHeroProps) {
     onOpenSearch()
   }, [onOpenSearch])
 
-  const handleQuickQuestion = useCallback(() => {
-    onOpenSearch()
-  }, [onOpenSearch])
+  const handleQuickQuestion = useCallback((question: string) => {
+    onQuickQuestion(question)
+  }, [onQuickQuestion])
 
   return (
     <div className="mb-10 animate-fade-in">
@@ -117,7 +118,7 @@ export function AskMeHero({ onOpenSearch }: AskMeHeroProps) {
         {quickQuestions.map((q) => (
           <button
             key={q}
-            onClick={handleQuickQuestion}
+            onClick={() => handleQuickQuestion(q)}
             className="px-4 py-2 rounded-xl border border-brd/80 bg-bg3/40 text-t3 text-xs font-medium hover:border-gold/30 hover:text-gold hover:bg-gold/[0.06] hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300"
           >
             {q}
