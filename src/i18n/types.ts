@@ -9,6 +9,7 @@ export interface Translations {
     readonly society: string
     readonly industry: string
     readonly legal: string
+    readonly news: string
     readonly search: string
   }
   readonly header: {

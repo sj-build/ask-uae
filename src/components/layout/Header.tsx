@@ -40,7 +40,8 @@ export function Header({ onSearchClick }: HeaderProps) {
             {/* Language Toggle */}
             <button
               onClick={() => setLocale(locale === 'ko' ? 'en' as Locale : 'ko' as Locale)}
-              className="relative px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest text-t3 hover:text-gold bg-bg3/50 hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-all duration-300 uppercase overflow-hidden group"
+              aria-label={locale === 'ko' ? 'Switch to English' : '한국어로 전환'}
+              className="relative px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest text-t3 hover:text-gold bg-bg3/50 hover:bg-gold/10 border border-transparent hover:border-gold/20 transition-colors duration-300 uppercase overflow-hidden group focus-visible:ring-2 focus-visible:ring-gold/50"
             >
               <span className="relative z-10">{locale === 'ko' ? 'EN' : 'KO'}</span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />

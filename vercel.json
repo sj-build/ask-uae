@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/weekly-analysis",
       "schedule": "0 0 * * 0"
+    },
+    {
+      "path": "/api/memory/sync-news",
+      "schedule": "0 9 * * *"
     }
   ]
 }

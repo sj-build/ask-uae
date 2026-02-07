@@ -9,6 +9,7 @@ export const ko: Translations = {
     society: '사회·문화·종교',
     industry: '산업지도',
     legal: '법률·규제',
+    news: '뉴스',
     search: 'Ask Me',
   },
   header: {
@@ -127,7 +128,7 @@ export const ko: Translations = {
       trendsTitle: '최근 트렌드 -- 변화하는 UAE (2025-2026)',
     },
     industry: {
-      title: 'UAE 산업지도 — 섹터별 시장규모, 밸류체인, 주요 플레이어',
+      title: 'UAE 산업지도',
       subtitle: '주요 투자 섹터 중심. 시장 규모는 UAE 단독 기준 (GCC 포함 시 3-5배).',
     },
     legal: {

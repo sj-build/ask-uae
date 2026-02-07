@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { crawlGoogleNews, crawlNaverNews } from '@/lib/news/crawler'
+import { crawlGoogleNews, crawlNaverNews, enrichWithImages } from '@/lib/news/crawler'
 import { deduplicateNews } from '@/lib/news/deduplicator'
 import { tagNewsBatch } from '@/lib/news/tagger'
 import { ALL_KEYWORDS } from '@/data/news/keywords'
@@ -76,9 +76,15 @@ export async function GET(): Promise<NextResponse> {
       return dateB - dateA
     })
 
+    // Enrich top 10 items with OG images (limit to reduce latency)
+    const topItems = sorted.slice(0, 10)
+    const remainingItems = sorted.slice(10, 30)
+    const enrichedTop = await enrichWithImages([...topItems])
+    const finalData = [...enrichedTop, ...remainingItems]
+
     return NextResponse.json({
       success: true,
-      data: sorted.slice(0, 30),
+      data: finalData,
       meta: {
         total: sorted.length,
         page: 1,

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { AskMeHero } from '@/components/home/AskMeHero'
-import { UAENowDashboard } from '@/components/home/UAENowDashboard'
+import { UAENowSection, UAEOpportunitiesSection, UAERisksSection } from '@/components/home/UAENowDashboard'
 import { NewsHeadlines } from '@/components/overview/NewsHeadlines'
 import { SearchModal } from '@/components/layout/SearchModal'
 
@@ -29,9 +29,14 @@ export default function HomePage() {
     <>
       <AskMeHero onOpenSearch={handleOpenSearch} onQuickQuestion={handleQuickQuestion} />
 
-      <UAENowDashboard />
+      {/* Section Order: UAE Now → News → Opportunities → Risks */}
+      <UAENowSection />
 
       <NewsHeadlines />
+
+      <UAEOpportunitiesSection />
+
+      <UAERisksSection />
 
       <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} initialQuery={initialQuery} />
     </>

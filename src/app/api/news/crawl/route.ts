@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { crawlGoogleNews, crawlNaverNews } from '@/lib/news/crawler'
+import { crawlGoogleNews, crawlNaverNews, enrichWithImages } from '@/lib/news/crawler'
 import { deduplicateNews } from '@/lib/news/deduplicator'
 import { tagNewsBatch } from '@/lib/news/tagger'
 import { ALL_KEYWORDS } from '@/data/news/keywords'
@@ -73,12 +73,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     const deduplicated = deduplicateNews(allItems)
     const tagged = tagNewsBatch(deduplicated, ALL_KEYWORDS)
 
-    const googleCount = tagged.filter((item) => item.source === 'google').length
-    const naverCount = tagged.filter((item) => item.source === 'naver').length
+    // Enrich with OG images (only for first 20 items to limit fetch time)
+    const toEnrich = tagged.slice(0, 20)
+    const remaining = tagged.slice(20)
+    const enriched = await enrichWithImages([...toEnrich])
+    const finalData = [...enriched, ...remaining]
+
+    const googleCount = finalData.filter((item) => item.source === 'google').length
+    const naverCount = finalData.filter((item) => item.source === 'naver').length
 
     return NextResponse.json({
       success: true,
-      data: tagged,
+      data: finalData,
       meta: {
         total: tagged.length,
         sources: { google: googleCount, naver: naverCount },

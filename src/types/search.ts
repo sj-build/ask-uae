@@ -13,6 +13,7 @@ export const SearchRequestSchema = z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
   })).optional(),
+  stream: z.boolean().optional(),
 })
 
 export type SearchRequest = z.infer<typeof SearchRequestSchema>

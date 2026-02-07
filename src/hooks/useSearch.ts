@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { SearchResponse, ChatMessage } from '@/types/search'
+import type { ChatMessage } from '@/types/search'
 import { CONVERSATION_LIMITS } from '@/types/search'
 
 const STORAGE_KEY = 'uae-dashboard-conversations'
@@ -40,9 +40,18 @@ function saveConversations(conversations: SavedConversation[]): void {
   }
 }
 
+interface StreamEvent {
+  type: 'metadata' | 'content' | 'done' | 'error'
+  text?: string
+  turnCount?: number
+  limitReached?: boolean
+  error?: string
+}
+
 export function useSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [streamingContent, setStreamingContent] = useState('')
   const [limitReached, setLimitReached] = useState(false)
   const [turnCount, setTurnCount] = useState(0)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
@@ -115,6 +124,7 @@ export function useSearch() {
     const userMessage: ChatMessage = { role: 'user', content: query }
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
+    setStreamingContent('')
 
     try {
       // Build messages for API (current messages + new user message)
@@ -126,29 +136,79 @@ export function useSearch() {
         body: JSON.stringify({
           query,
           messages: currentMessages,
+          stream: true,
         }),
         signal: controller.signal,
       })
 
-      const data: SearchResponse = await response.json()
+      // Check if streaming response
+      const contentType = response.headers.get('content-type')
 
-      if (data.success && data.html) {
-        // Add assistant message
-        const assistantMessage: ChatMessage = { role: 'assistant', content: data.html }
-        setMessages(prev => [...prev, assistantMessage])
-        setTurnCount(data.turnCount ?? turnCount + 1)
+      if (contentType?.includes('text/event-stream')) {
+        // Handle streaming response
+        const reader = response.body?.getReader()
+        if (!reader) throw new Error('No reader available')
 
-        // Check if limit reached
-        if (data.limitReached) {
-          setLimitReached(true)
+        const decoder = new TextDecoder()
+        let accumulatedContent = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const event: StreamEvent = JSON.parse(line.slice(6))
+
+                if (event.type === 'metadata') {
+                  if (event.turnCount !== undefined) {
+                    setTurnCount(event.turnCount)
+                  }
+                  if (event.limitReached) {
+                    setLimitReached(true)
+                  }
+                } else if (event.type === 'content' && event.text) {
+                  accumulatedContent += event.text
+                  setStreamingContent(accumulatedContent)
+                } else if (event.type === 'done') {
+                  // Finalize the assistant message
+                  const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
+                  setMessages(prev => [...prev, assistantMessage])
+                  setStreamingContent('')
+                } else if (event.type === 'error') {
+                  throw new Error(event.error || 'Stream error')
+                }
+              } catch (parseError) {
+                // Skip invalid JSON lines
+              }
+            }
+          }
         }
       } else {
-        // Remove the user message on error
-        setMessages(prev => prev.slice(0, -1))
+        // Handle non-streaming response (fallback)
+        const data = await response.json()
+
+        if (data.success && data.html) {
+          const assistantMessage: ChatMessage = { role: 'assistant', content: data.html }
+          setMessages(prev => [...prev, assistantMessage])
+          setTurnCount(data.turnCount ?? turnCount + 1)
+
+          if (data.limitReached) {
+            setLimitReached(true)
+          }
+        } else {
+          // Remove the user message on error
+          setMessages(prev => prev.slice(0, -1))
+        }
       }
     } catch (error) {
       // Remove the user message on error
       setMessages(prev => prev.slice(0, -1))
+      setStreamingContent('')
 
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Search error:', error.message)
@@ -160,6 +220,7 @@ export function useSearch() {
 
   const clearConversation = useCallback(() => {
     setMessages([])
+    setStreamingContent('')
     setLimitReached(false)
     setTurnCount(0)
     setCurrentConversationId(null)
@@ -194,6 +255,7 @@ export function useSearch() {
   return {
     isLoading,
     messages,
+    streamingContent,
     turnCount,
     limitReached,
     isNearLimit,

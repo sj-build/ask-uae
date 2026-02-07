@@ -16,13 +16,14 @@ export function Collapsible({ header, children, defaultOpen = false }: Collapsib
     <div className="mb-6">
       <button
         onClick={() => setIsOpen(prev => !prev)}
-        className={`group w-full flex items-center gap-3 p-3.5 px-5 bg-bg3/60 border border-brd/80 rounded-xl cursor-pointer transition-all duration-400 ease-out hover:bg-bg3/90 text-left ${
+        aria-expanded={isOpen}
+        className={`group w-full flex items-center gap-3 p-3.5 px-5 bg-bg3/60 border border-brd/80 rounded-xl cursor-pointer transition-[background-color,border-color] duration-400 ease-out hover:bg-bg3/90 text-left focus-visible:ring-2 focus-visible:ring-gold/50 ${
           isOpen ? 'rounded-b-none border-b-transparent border-brd2/60' : 'hover:border-brd2/40'
         }`}
       >
         {header}
         <ChevronDown
-          className={`w-3.5 h-3.5 text-t4 transition-all duration-400 ease-out ml-auto shrink-0 group-hover:text-t3 ${
+          className={`w-3.5 h-3.5 text-t4 transition-transform duration-400 ease-out ml-auto shrink-0 group-hover:text-t3 ${
             isOpen ? 'rotate-180 text-gold/50' : ''
           }`}
         />

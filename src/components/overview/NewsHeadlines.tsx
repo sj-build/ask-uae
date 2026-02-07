@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Collapsible } from '@/components/ui/Collapsible'
 import { useLocale } from '@/hooks/useLocale'
 import type { NewsItem } from '@/types/news'
@@ -13,54 +14,45 @@ interface NewsApiResponse {
   readonly error?: string
 }
 
-const PUBLISHER_COLORS: Record<string, string> = {
-  Reuters: 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
-  Bloomberg: 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
-  'Financial Times': 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
-  'Wall Street Journal': 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
-  'The National': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
-  'Khaleej Times': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
-  'Arab News': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
-  'Gulf News': 'bg-accent-green/15 text-accent-green border-accent-green/20',
-  WAM: 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
-  'Naver News': 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
+// Category configuration with colors and placeholder images
+const CATEGORY_CONFIG: Record<string, {
+  label: string
+  labelEn: string
+  gradient: string
+  icon: string
+  keywords: readonly string[]
+}> = {
+  politics: {
+    label: '정치',
+    labelEn: 'Politics',
+    gradient: 'from-indigo-600 to-purple-700',
+    icon: '🏛️',
+    keywords: ['정치', '외교', '왕족', '핵심인물', '지정학', 'diplomatic', 'political', 'royal', 'government'],
+  },
+  economy: {
+    label: '경제',
+    labelEn: 'Economy',
+    gradient: 'from-emerald-600 to-teal-700',
+    icon: '📈',
+    keywords: ['경제', '금융', '투자', '국부펀드', '거시경제', 'economy', 'finance', 'investment', 'fund'],
+  },
+  society: {
+    label: '사회/문화',
+    labelEn: 'Society',
+    gradient: 'from-rose-600 to-pink-700',
+    icon: '🎭',
+    keywords: ['사회', '문화', '관광', '부동산', 'society', 'culture', 'tourism', 'real estate'],
+  },
+  korea: {
+    label: 'UAE-한국',
+    labelEn: 'UAE-Korea',
+    gradient: 'from-blue-600 to-cyan-700',
+    icon: '🇰🇷',
+    keywords: ['한국', 'Korea', 'Korean', 'K-', 'Hyundai', 'Samsung', 'LG', 'Hanwha', 'KEPCO', 'Seoul'],
+  },
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'AI/테크': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  '에너지': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  '크립토': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  '금융': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  '부동산': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  '관광': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  '국부펀드': 'bg-gold/20 text-gold border-gold/30',
-  '투자': 'bg-gold/20 text-gold border-gold/30',
-  '왕족': 'bg-gold/20 text-gold border-gold/30',
-  '핵심인물': 'bg-gold/20 text-gold border-gold/30',
-  '거시경제': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  '지정학': 'bg-red-500/20 text-red-400 border-red-500/30',
-  '정책': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-  '외교': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-}
-
-const DEFAULT_BADGE_STYLE = 'bg-t4/15 text-t3 border-t4/20'
-
-function getPublisherBadgeStyle(publisher: string): string {
-  return PUBLISHER_COLORS[publisher] ?? DEFAULT_BADGE_STYLE
-}
-
-function extractCategory(tags: readonly string[]): string | null {
-  for (const tag of tags) {
-    if (tag.includes(':')) {
-      return tag.split(':')[0]
-    }
-  }
-  return null
-}
-
-function getCategoryBadgeStyle(category: string): string {
-  return CATEGORY_COLORS[category] ?? DEFAULT_BADGE_STYLE
-}
+const CATEGORY_ORDER = ['politics', 'economy', 'society', 'korea'] as const
 
 function formatRelativeDate(
   dateString: string,
@@ -89,14 +81,62 @@ function formatRelativeDate(
   }
 }
 
-function NewsHeadlineSkeleton() {
+function categorizeNews(item: NewsItem): string {
+  const searchText = `${item.title} ${item.tags.join(' ')}`.toLowerCase()
+
+  for (const [category, config] of Object.entries(CATEGORY_CONFIG)) {
+    for (const keyword of config.keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        return category
+      }
+    }
+  }
+
+  return 'economy' // default
+}
+
+function selectNewsPerCategory(items: readonly NewsItem[]): Record<string, NewsItem | null> {
+  const result: Record<string, NewsItem | null> = {
+    politics: null,
+    economy: null,
+    society: null,
+    korea: null,
+  }
+
+  const categorized = items.map(item => ({
+    item,
+    category: categorizeNews(item),
+  }))
+
+  // First pass: assign news to each category
+  for (const { item, category } of categorized) {
+    if (result[category] === null) {
+      result[category] = item
+    }
+  }
+
+  // Second pass: fill empty categories with remaining news
+  const usedIds = new Set(Object.values(result).filter(Boolean).map(item => item!.id))
+  const remaining = items.filter(item => !usedIds.has(item.id))
+
+  for (const category of CATEGORY_ORDER) {
+    if (result[category] === null && remaining.length > 0) {
+      result[category] = remaining.shift()!
+    }
+  }
+
+  return result
+}
+
+function NewsGridSkeleton() {
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 animate-pulse">
-          <div className="w-16 h-5 bg-bg4 rounded shrink-0 mt-0.5" />
-          <div className="flex-1 space-y-1.5">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex gap-4 animate-pulse">
+          <div className="w-[120px] h-[80px] bg-bg4 rounded-lg shrink-0" />
+          <div className="flex-1 space-y-2 py-1">
             <div className="h-4 bg-bg4 rounded w-full" />
+            <div className="h-4 bg-bg4 rounded w-3/4" />
             <div className="h-3 bg-bg4 rounded w-1/3" />
           </div>
         </div>
@@ -105,51 +145,60 @@ function NewsHeadlineSkeleton() {
   )
 }
 
-interface NewsHeadlineItemProps {
+interface NewsGridItemProps {
   readonly item: NewsItem
+  readonly category: string
   readonly p: Translations['pages']['home']
   readonly locale: 'ko' | 'en'
 }
 
-function NewsHeadlineItem({ item, p, locale }: NewsHeadlineItemProps) {
-  const category = extractCategory(item.tags)
+function NewsGridItem({ item, category, p, locale }: NewsGridItemProps) {
+  const config = CATEGORY_CONFIG[category]
+  const hasImage = item.imageUrl && item.imageUrl.startsWith('http')
+  const [imgError, setImgError] = useState(false)
 
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-start gap-3 py-3 px-2 rounded-lg transition-colors duration-150 hover:bg-bg4/50 group border-b border-brd/30 last:border-0"
+      className="flex gap-4 group"
     >
-      {/* Left: Unified badge column */}
-      <div className="shrink-0 w-[72px] flex flex-col items-start gap-1">
-        <span
-          className={`w-full text-center px-2 py-1 rounded text-[11px] font-bold ${item.source === 'naver' ? 'bg-accent-green/15 text-accent-green' : 'bg-accent-blue/15 text-accent-blue'}`}
-        >
-          {item.publisher.length > 10 ? item.publisher.slice(0, 8) + '..' : item.publisher}
-        </span>
-        {category && (
-          <span
-            className={`w-full text-center px-2 py-0.5 rounded text-[10px] font-semibold ${getCategoryBadgeStyle(category)}`}
-          >
-            {category}
-          </span>
+      {/* Image/Placeholder */}
+      <div className="w-[120px] h-[80px] shrink-0 rounded-lg overflow-hidden relative">
+        {hasImage && !imgError ? (
+          <Image
+            src={item.imageUrl!}
+            alt={item.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="120px"
+            onError={() => setImgError(true)}
+            unoptimized
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
+            <span className="text-3xl opacity-80">{config.icon}</span>
+          </div>
         )}
+        {/* Category badge */}
+        <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/60 text-white backdrop-blur-sm">
+          {locale === 'en' ? config.labelEn : config.label}
+        </div>
       </div>
 
-      {/* Right: Content */}
-      <div className="flex-1 min-w-0">
-        <div className="text-[14px] text-t1 font-medium leading-snug group-hover:text-gold transition-colors duration-150 line-clamp-2">
+      {/* Content */}
+      <div className="flex-1 min-w-0 py-0.5">
+        <h3 className="text-[13px] text-t1 font-medium leading-snug line-clamp-2 group-hover:text-gold transition-colors duration-150">
           {item.title}
-        </div>
-
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[11px] text-t4">
-            {formatRelativeDate(item.publishedAt, p, locale)}
+        </h3>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[11px] text-t4 truncate max-w-[80px]">
+            {item.publisher}
           </span>
           <span className="text-t4">·</span>
-          <span className={`text-[11px] font-medium ${item.source === 'naver' ? 'text-accent-green' : 'text-accent-blue'}`}>
-            {item.source === 'naver' ? 'KR' : 'EN'}
+          <span className="text-[11px] text-t4">
+            {formatRelativeDate(item.publishedAt, p, locale)}
           </span>
         </div>
       </div>
@@ -169,7 +218,7 @@ function ErrorDisplay({ message, onRetry, retryLabel }: ErrorDisplayProps) {
       <div className="text-[13px] text-accent-red mb-2">{message}</div>
       <button
         onClick={onRetry}
-        className="text-[12px] text-t3 hover:text-gold transition-colors duration-150 underline"
+        className="text-[12px] text-t3 hover:text-gold transition-colors duration-150 underline focus-visible:ring-2 focus-visible:ring-gold/50 rounded"
       >
         {retryLabel}
       </button>
@@ -201,7 +250,7 @@ export function NewsHeadlines() {
         throw new Error(data.error ?? p.newsDataError)
       }
 
-      setNewsItems(data.data.slice(0, 5))
+      setNewsItems(data.data)
     } catch (err) {
       const errorMessage = err instanceof Error
         ? err.message
@@ -216,6 +265,11 @@ export function NewsHeadlines() {
     fetchNews()
   }, [fetchNews])
 
+  const categorizedNews = selectNewsPerCategory(newsItems)
+  const displayNews = CATEGORY_ORDER
+    .map(cat => ({ category: cat, item: categorizedNews[cat] }))
+    .filter(({ item }) => item !== null) as Array<{ category: string; item: NewsItem }>
+
   const headerContent = (
     <div className="flex items-center gap-3 flex-1">
       <span className="text-xl">📰</span>
@@ -223,9 +277,9 @@ export function NewsHeadlines() {
         <div className="font-bold text-base text-t1">{p.newsTitle}</div>
         <div className="text-[12px] text-t3">{p.newsSubtitle}</div>
       </div>
-      {!isLoading && !error && newsItems.length > 0 && (
+      {!isLoading && !error && displayNews.length > 0 && (
         <span className="ml-auto mr-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gold/10 text-gold border border-gold/20">
-          {newsItems.length}{p.newsCount}
+          {displayNews.length}{p.newsCount}
         </span>
       )}
     </div>
@@ -233,32 +287,39 @@ export function NewsHeadlines() {
 
   return (
     <Collapsible header={headerContent} defaultOpen>
-      {isLoading && <NewsHeadlineSkeleton />}
+      {isLoading && <NewsGridSkeleton />}
 
       {error && <ErrorDisplay message={error} onRetry={fetchNews} retryLabel={p.newsRetry} />}
 
-      {!isLoading && !error && newsItems.length === 0 && (
+      {!isLoading && !error && displayNews.length === 0 && (
         <div className="text-center py-6 text-[13px] text-t3">
           {p.newsEmpty}
         </div>
       )}
 
-      {!isLoading && !error && newsItems.length > 0 && (
-        <div className="space-y-0.5">
-          {newsItems.map((item) => (
-            <NewsHeadlineItem key={item.id} item={item} p={p} locale={locale} />
-          ))}
+      {!isLoading && !error && displayNews.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            {displayNews.map(({ category, item }) => (
+              <NewsGridItem
+                key={item.id}
+                item={item}
+                category={category}
+                p={p}
+                locale={locale}
+              />
+            ))}
+          </div>
 
-          <div className="pt-3 mt-3 flex justify-end">
+          <div className="pt-4 mt-4 border-t border-brd/30 flex justify-center">
             <Link
               href="/news"
-              className="flex items-center gap-1 text-[12px] text-t4 transition-colors hover:text-t2"
+              className="text-[13px] text-gold hover:text-gold3 transition-colors focus-visible:ring-2 focus-visible:ring-gold/50 rounded px-2 py-1"
             >
-              {p.newsMore}
-              <span>→</span>
+              {p.newsMore} →
             </Link>
           </div>
-        </div>
+        </>
       )}
     </Collapsible>
   )

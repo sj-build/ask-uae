@@ -16,6 +16,24 @@ const VALUE_CHAIN_COLORS: Record<string, string> = {
   '리테일': 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
   '유통': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
   '방위': 'bg-accent-red/15 text-accent-red border-accent-red/20',
+  '플랫폼': 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
+  '투자': 'bg-gold/10 text-gold border-gold/20',
+  '인프라': 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
+  '서비스': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
+  '클라우드': 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
+  '브랜드': 'bg-accent-green/15 text-accent-green border-accent-green/20',
+  '네트워크': 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
+  '이커머스': 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
+  '콘텐츠': 'bg-accent-blue/15 text-accent-blue border-accent-blue/20',
+  '테마파크': 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
+  '스테이블': 'bg-gold/10 text-gold border-gold/20',
+  '채굴': 'bg-accent-orange/15 text-accent-orange border-accent-orange/20',
+  '저탄소': 'bg-accent-green/15 text-accent-green border-accent-green/20',
+  '재생': 'bg-accent-green/15 text-accent-green border-accent-green/20',
+  '원자력': 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
+  '위성': 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
+  '우주': 'bg-accent-purple/15 text-accent-purple border-accent-purple/20',
+  'R&D': 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/20',
 }
 
 const DEFAULT_CHAIN_STYLE = 'bg-gold/10 text-gold border-gold/20'
@@ -28,42 +46,45 @@ function getValueChainStyle(position: string | undefined): string {
   return DEFAULT_CHAIN_STYLE
 }
 
-export function PlayerRow({ player }: PlayerRowProps) {
+function buildKeyFacts(player: Player): string {
+  const facts: string[] = []
+
   const displayRevenue = player.revenueUsd ?? player.revenue
+  if (displayRevenue) {
+    facts.push(displayRevenue)
+  }
+
+  if (player.note) {
+    facts.push(player.note)
+  }
+
+  return facts.join(' · ')
+}
+
+export function PlayerRow({ player }: PlayerRowProps) {
+  const keyFacts = buildKeyFacts(player)
+
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2 py-2.5 border-b border-brd/30 text-xs last:border-b-0">
+    <div className="grid grid-cols-[minmax(100px,140px)_minmax(70px,100px)_1fr] items-start gap-3 py-2.5 border-b border-brd/30 text-xs last:border-b-0">
+      {/* Company */}
       <div className="min-w-0">
         <span className="font-semibold text-t1 block truncate">{player.name}</span>
         {player.owner && <span className="text-[10px] text-t3 block truncate">{player.owner}</span>}
       </div>
 
+      {/* Position */}
       {player.valueChainPosition ? (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap ${getValueChainStyle(player.valueChainPosition)}`}>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap w-fit ${getValueChainStyle(player.valueChainPosition)}`}>
           {player.valueChainPosition}
         </span>
       ) : (
         <span />
       )}
 
-      {player.marketCapUsd ? (
-        <span className="font-mono text-[10px] text-t2 whitespace-nowrap text-right">
-          {player.marketCapUsd}
-        </span>
-      ) : (
-        <span />
-      )}
-
-      {displayRevenue ? (
-        <span className="font-mono text-[11px] text-accent-green whitespace-nowrap text-right">
-          {displayRevenue}
-        </span>
-      ) : (
-        <span />
-      )}
-
-      {player.note ? (
-        <span className="text-[10px] text-t3 text-right truncate">
-          {player.note}
+      {/* Key Facts */}
+      {keyFacts ? (
+        <span className="text-[11px] text-t2 leading-relaxed">
+          {keyFacts}
         </span>
       ) : (
         <span />

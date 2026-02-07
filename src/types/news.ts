@@ -11,6 +11,7 @@ export interface NewsItem {
   readonly tags: readonly string[]
   readonly summary?: string
   readonly priority: NewsPriority
+  readonly imageUrl?: string
 }
 
 export interface Keyword {

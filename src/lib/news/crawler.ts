@@ -92,6 +92,82 @@ function parseRssItems(xmlText: string): ReadonlyArray<{
   return items
 }
 
+/**
+ * Fetch OG image from a news article URL
+ */
+async function fetchOgImage(url: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; UAEDashboard/1.0; +https://askuae.vercel.app)',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(5000),
+      redirect: 'follow',
+    })
+
+    if (!response.ok) {
+      return undefined
+    }
+
+    const html = await response.text()
+
+    // Extract og:image meta tag
+    // Patterns: <meta property="og:image" content="..."> or <meta name="og:image" content="...">
+    const ogImagePatterns = [
+      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i,
+      /<meta[^>]*name=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']og:image["']/i,
+      // Twitter card image as fallback
+      /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i,
+    ]
+
+    for (const pattern of ogImagePatterns) {
+      const match = html.match(pattern)
+      if (match?.[1]) {
+        let imageUrl = match[1]
+
+        // Handle relative URLs
+        if (imageUrl.startsWith('//')) {
+          imageUrl = 'https:' + imageUrl
+        } else if (imageUrl.startsWith('/')) {
+          const urlObj = new URL(url)
+          imageUrl = urlObj.origin + imageUrl
+        }
+
+        // Validate it's a proper URL
+        if (imageUrl.startsWith('http')) {
+          return imageUrl
+        }
+      }
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Add OG images to news items in parallel
+ */
+export async function enrichWithImages(items: NewsItem[]): Promise<NewsItem[]> {
+  const enrichedItems = await Promise.all(
+    items.map(async (item) => {
+      if (item.imageUrl) {
+        return item // Already has image
+      }
+
+      const imageUrl = await fetchOgImage(item.url)
+      return imageUrl ? { ...item, imageUrl } : item
+    })
+  )
+
+  return enrichedItems
+}
+
 export async function crawlGoogleNews(keywords: readonly string[]): Promise<readonly NewsItem[]> {
   const results: NewsItem[] = []
 

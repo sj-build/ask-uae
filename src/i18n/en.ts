@@ -9,6 +9,7 @@ export const en: Translations = {
     society: 'Society & Culture',
     industry: 'Industry Map',
     legal: 'Legal & Regulatory',
+    news: 'News',
     search: 'Ask Me',
   },
   header: {
@@ -127,7 +128,7 @@ export const en: Translations = {
       trendsTitle: 'Recent Trends — UAE in Transition (2025-2026)',
     },
     industry: {
-      title: 'UAE Industry Map — Market Size, Value Chains, Key Players by Sector',
+      title: 'UAE Industry Map',
       subtitle: 'Focused on key investment sectors. Market sizes are UAE-only (3-5x when including GCC).',
     },
     legal: {

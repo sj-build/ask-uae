@@ -46,8 +46,8 @@ const OPPORTUNITY_PILLARS: readonly StrategicPillar[] = [
     icon: '🏗️',
     nameKo: '부동산 & 건설',
     nameEn: 'Real Estate & Construction',
-    headlineKo: '2024 거래액 $243B',
-    headlineEn: '2024 Transactions $243B',
+    headlineKo: '2025 거래액 $280B',
+    headlineEn: '2025 Transactions $280B',
     subheadlineKo: 'Dubai $207B (+36% YoY)',
     subheadlineEn: 'Dubai $207B (+36% YoY)',
     investment: '$243B+',
@@ -329,54 +329,74 @@ function RiskSection({ locale }: { readonly locale: string }) {
   )
 }
 
-export function UAENowDashboard() {
-  const { locale, t } = useLocale()
+// Export individual sections for flexible composition in home page
+
+export function UAENowSection() {
+  const { locale } = useLocale()
 
   return (
-    <div className="space-y-6 mb-6">
-      {/* Section 1: UAE Now - Key Issues */}
-      <section>
-        <div className="flex items-center gap-2 mb-5">
-          <span className="text-2xl">🇦🇪</span>
-          <h2 className="text-lg font-bold text-t1 tracking-tight">UAE Now</h2>
-          <span className="text-sm text-t4 ml-1">
-            {locale === 'en' ? 'Key Issues at a Glance' : '한눈에 보는 핵심 이슈'}
-          </span>
-        </div>
-        <KeyIssuesSummary locale={locale} />
-      </section>
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-2xl">🇦🇪</span>
+        <h2 className="text-lg font-bold text-t1 tracking-tight">UAE Now</h2>
+        <span className="text-sm text-t4 ml-1">
+          {locale === 'en' ? 'Key Issues at a Glance' : '한눈에 보는 핵심 이슈'}
+        </span>
+      </div>
+      <KeyIssuesSummary locale={locale} />
+    </section>
+  )
+}
 
-      {/* Section 2: UAE 기회 (Opportunity) */}
-      <section>
-        <div className="flex items-center gap-2 mb-5">
-          <span className="text-2xl">🚀</span>
-          <h2 className="text-lg font-bold text-t1 tracking-tight">
-            {locale === 'en' ? 'UAE Opportunities' : 'UAE 기회'}
-          </h2>
-          <span className="text-sm text-t4 ml-1">
-            {locale === 'en' ? 'Investment & Growth Sectors' : '투자 및 성장 섹터'}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {OPPORTUNITY_PILLARS.map((pillar) => (
-            <PillarCard key={pillar.id} pillar={pillar} locale={locale} />
-          ))}
-        </div>
-      </section>
+export function UAEOpportunitiesSection() {
+  const { locale } = useLocale()
 
-      {/* Section 3: UAE Risk */}
-      <section>
-        <div className="flex items-center gap-2 mb-5">
-          <AlertTriangle className="w-6 h-6 text-accent-red" />
-          <h2 className="text-lg font-bold text-t1 tracking-tight">
-            {locale === 'en' ? 'UAE Risks' : 'UAE 리스크'}
-          </h2>
-          <span className="text-sm text-t4 ml-1">
-            {locale === 'en' ? 'Macro Risk Factors' : '거시 리스크 요인'}
-          </span>
-        </div>
-        <RiskSection locale={locale} />
-      </section>
+  return (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-2xl">🚀</span>
+        <h2 className="text-lg font-bold text-t1 tracking-tight">
+          {locale === 'en' ? 'UAE Opportunities' : 'UAE 기회'}
+        </h2>
+        <span className="text-sm text-t4 ml-1">
+          {locale === 'en' ? 'Investment & Growth Sectors' : '투자 및 성장 섹터'}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {OPPORTUNITY_PILLARS.map((pillar) => (
+          <PillarCard key={pillar.id} pillar={pillar} locale={locale} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function UAERisksSection() {
+  const { locale } = useLocale()
+
+  return (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-5">
+        <AlertTriangle className="w-6 h-6 text-accent-red" />
+        <h2 className="text-lg font-bold text-t1 tracking-tight">
+          {locale === 'en' ? 'UAE Risks' : 'UAE 리스크'}
+        </h2>
+        <span className="text-sm text-t4 ml-1">
+          {locale === 'en' ? 'Macro Risk Factors' : '거시 리스크 요인'}
+        </span>
+      </div>
+      <RiskSection locale={locale} />
+    </section>
+  )
+}
+
+// Keep the combined dashboard for backward compatibility
+export function UAENowDashboard() {
+  return (
+    <div className="space-y-0">
+      <UAENowSection />
+      <UAEOpportunitiesSection />
+      <UAERisksSection />
     </div>
   )
 }

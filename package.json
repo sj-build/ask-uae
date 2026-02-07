@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",
+    "@supabase/supabase-js": "^2.95.3",
     "@vercel/kv": "^3.0.0",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "playwright-core": "^1.58.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -52,6 +52,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
   const {
     isLoading,
     messages,
+    streamingContent,
     turnCount,
     limitReached,
     isNearLimit,
@@ -105,12 +106,12 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     }
   }, [isLoading, hasAssistantResponse, loadingMessages.length])
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or streaming content updates
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages])
+  }, [messages, streamingContent])
 
   // Handle initial query from quick questions
   useEffect(() => {
@@ -235,7 +236,8 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                       </div>
                       <button
                         onClick={(e) => handleDeleteConversation(e, conv.id)}
-                        className="p-1 rounded-lg text-t4 opacity-0 group-hover:opacity-100 hover:text-accent-red hover:bg-accent-red/10 transition-all"
+                        aria-label="대화 삭제"
+                        className="p-1 rounded-lg text-t4 opacity-0 group-hover:opacity-100 hover:text-accent-red hover:bg-accent-red/10 transition-opacity focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent-red/50"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -248,7 +250,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
             <div className="p-3 border-t border-brd/50">
               <button
                 onClick={handleNewConversation}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gold/10 text-gold text-[12px] font-medium hover:bg-gold/20 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gold/10 text-gold text-[12px] font-medium hover:bg-gold/20 transition-colors focus-visible:ring-2 focus-visible:ring-gold/50"
               >
                 <MessageSquare className="w-4 h-4" />
                 새 대화 시작
@@ -283,7 +285,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
               {hasMessages && (
                 <button
                   onClick={handleNewConversation}
-                  className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-brd/80 bg-bg3/60 text-t3 text-[11px] font-medium hover:bg-bg3 hover:text-t1 hover:border-brd transition-all duration-200"
+                  className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-brd/80 bg-bg3/60 text-t3 text-[11px] font-medium hover:bg-bg3 hover:text-t1 hover:border-brd transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-gold/50"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   새 대화
@@ -291,7 +293,8 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
               )}
               <button
                 onClick={onClose}
-                className="py-2 px-2 rounded-xl border border-brd/80 bg-bg3/60 text-t3 hover:bg-bg3 hover:text-t1 hover:border-brd transition-all duration-200"
+                aria-label="닫기"
+                className="py-2 px-2 rounded-xl border border-brd/80 bg-bg3/60 text-t3 hover:bg-bg3 hover:text-t1 hover:border-brd transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-gold/50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -352,7 +355,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                 <button
                   key={tag}
                   onClick={() => handleQuickSearch(tag)}
-                  className="px-3.5 py-1.5 rounded-lg border border-brd/80 bg-bg3/50 text-t3 text-[11px] font-medium transition-all duration-200 hover:border-gold/30 hover:text-gold hover:bg-gold/[0.06] hover:-translate-y-0.5"
+                  className="px-3.5 py-1.5 rounded-lg border border-brd/80 bg-bg3/50 text-t3 text-[11px] font-medium transition-[border-color,color,background-color,transform] duration-200 hover:border-gold/30 hover:text-gold hover:bg-gold/[0.06] hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold/50"
                 >
                   {tag}
                 </button>
@@ -457,8 +460,44 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   </div>
                 ))}
 
-                {/* Loading indicator */}
-                {isLoading && (
+                {/* Streaming content - show as it comes in */}
+                {isLoading && streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[90%] flex gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0 mt-1">
+                        <Sparkles className="w-4 h-4 text-gold animate-pulse" />
+                      </div>
+                      <div
+                        className="flex-1 px-4 py-3 rounded-2xl rounded-bl-md bg-bg3/80 border border-brd/40
+                          search-content text-[13px] leading-[1.9] text-t2
+                          [&_p]:mb-3 [&_p]:last:mb-0
+                          [&_h1]:font-display [&_h1]:text-xl [&_h1]:text-gold [&_h1]:mb-4 [&_h1]:mt-4 [&_h1]:first:mt-0 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-gold/30
+                          [&_h2]:font-display [&_h2]:text-lg [&_h2]:text-gold [&_h2]:mb-3 [&_h2]:mt-4 [&_h2]:first:mt-0 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-brd/50
+                          [&_h3]:text-[14px] [&_h3]:font-bold [&_h3]:text-gold3 [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:first:mt-0
+                          [&_h4]:text-[13px] [&_h4]:font-semibold [&_h4]:text-t1 [&_h4]:mt-3 [&_h4]:mb-1.5
+                          [&_b]:text-gold [&_strong]:text-gold [&_em]:text-t3 [&_em]:not-italic
+                          [&_ul]:pl-5 [&_ul]:my-3 [&_ul]:space-y-2 [&_ul]:list-disc
+                          [&_ol]:pl-5 [&_ol]:my-3 [&_ol]:space-y-2 [&_ol]:list-decimal
+                          [&_li]:text-t2 [&_li]:leading-relaxed [&_li_b]:text-t1 [&_li_strong]:text-t1
+                          [&_li>ul]:mt-2 [&_li>ol]:mt-2
+                          [&_code]:bg-bg [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent-cyan [&_code]:border [&_code]:border-brd/50
+                          [&_pre]:bg-bg [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-brd/50
+                          [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-xs [&_table]:rounded-xl [&_table]:overflow-hidden [&_table]:border [&_table]:border-brd/50
+                          [&_th]:p-2.5 [&_th]:text-left [&_th]:bg-bg [&_th]:text-t1 [&_th]:font-semibold [&_th]:border-b [&_th]:border-brd/50
+                          [&_td]:p-2.5 [&_td]:border-b [&_td]:border-brd/30 [&_td]:text-t2
+                          [&_tr:last-child_td]:border-b-0
+                          [&_tr:hover_td]:bg-bg/30
+                          [&_blockquote]:border-l-3 [&_blockquote]:border-l-gold [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-4 [&_blockquote]:bg-gold/[0.05] [&_blockquote]:rounded-r-xl [&_blockquote]:text-t3
+                          [&_hr]:my-4 [&_hr]:border-brd/50
+                          [&_a]:text-gold [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-gold3"
+                        dangerouslySetInnerHTML={{ __html: streamingContent }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Loading indicator - only when streaming hasn't started yet */}
+                {isLoading && !streamingContent && (
                   <div className="flex justify-start">
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0">
@@ -501,9 +540,11 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                 <input
                   ref={inputRef}
                   type="text"
+                  name="chat-query"
+                  autoComplete="off"
                   placeholder={limitReached ? '대화 제한에 도달했습니다' : hasMessages ? '후속 질문을 입력하세요...' : t.search.placeholder}
                   disabled={limitReached}
-                  className="flex-1 py-4 px-5 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-4 px-5 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-gold/50"
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleSearch() }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
@@ -511,7 +552,8 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                 <button
                   onClick={handleSearch}
                   disabled={limitReached || isLoading}
-                  className="mr-2 p-3 rounded-xl bg-gradient-to-r from-gold to-gold3 text-bg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-gold/20"
+                  aria-label="전송"
+                  className="mr-2 p-3 rounded-xl bg-gradient-to-r from-gold to-gold3 text-bg disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg hover:shadow-gold/20 focus-visible:ring-2 focus-visible:ring-gold/50"
                 >
                   <Send className="w-5 h-5" />
                 </button>

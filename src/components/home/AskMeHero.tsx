@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { Send, Sparkles } from 'lucide-react'
+import { useState, useCallback, useRef, useMemo } from 'react'
+import { Send, Sparkles, Lightbulb } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 
 const QUICK_QUESTIONS_KO = [
@@ -20,6 +20,33 @@ const QUICK_QUESTIONS_EN = [
   'Golden Visa requirements',
 ] as const
 
+// Fun UAE tips - short, punchy, memorable
+const UAE_TIPS_KO = [
+  { tip: '"마르하바!" 한마디면 현지인 심쿵 💘', emoji: '👋' },
+  { tip: '악수는 오른손으로! 왼손은 NO 🙅', emoji: '🤝' },
+  { tip: '라마단엔 낮에 몰래 먹어도 걸림 👀', emoji: '🌙' },
+  { tip: '금요일 = UAE의 일요일 ⛱️', emoji: '📅' },
+  { tip: '국부펀드 $2조 = 한국 GDP의 1.5배 😳', emoji: '💰' },
+  { tip: '"인샬라" = "아마도" 일정 재확인 필수!', emoji: '🗓️' },
+  { tip: 'UAE 인구 88%가 외국인, 내가 곧 현지인', emoji: '🌍' },
+  { tip: '아부다비 vs 두바이 = 조용한 부자 vs 플렉스', emoji: '🏙️' },
+  { tip: '법인세 9%, 프리존은 0%! 🤑', emoji: '📊' },
+  { tip: '아랍커피 거절 = 실례. 한 잔은 OK!', emoji: '☕' },
+] as const
+
+const UAE_TIPS_EN = [
+  { tip: 'Say "Marhaba!" and watch them smile 💘', emoji: '👋' },
+  { tip: 'Shake with right hand only! Left = no 🙅', emoji: '🤝' },
+  { tip: 'Ramadan: no sneaky snacking in public 👀', emoji: '🌙' },
+  { tip: 'Friday = UAE\'s Sunday ⛱️', emoji: '📅' },
+  { tip: 'SWF assets $2T = 1.5x Korea\'s GDP 😳', emoji: '💰' },
+  { tip: '"Inshallah" ≈ "maybe" — confirm schedules!', emoji: '🗓️' },
+  { tip: '88% expats = you\'re basically a local', emoji: '🌍' },
+  { tip: 'Abu Dhabi vs Dubai = quiet rich vs flashy', emoji: '🏙️' },
+  { tip: 'Corp tax 9%, free zones 0%! 🤑', emoji: '📊' },
+  { tip: 'Refuse Arabic coffee = rude. One cup OK!', emoji: '☕' },
+] as const
+
 interface AskMeHeroProps {
   readonly onOpenSearch: () => void
   readonly onQuickQuestion: (question: string) => void
@@ -31,6 +58,13 @@ export function AskMeHero({ onOpenSearch, onQuickQuestion }: AskMeHeroProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const quickQuestions = locale === 'en' ? QUICK_QUESTIONS_EN : QUICK_QUESTIONS_KO
+  const tips = locale === 'en' ? UAE_TIPS_EN : UAE_TIPS_KO
+
+  // Get tip based on day of year for consistency
+  const todaysTip = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+    return tips[dayOfYear % tips.length]
+  }, [tips])
 
   const handleFocus = useCallback(() => {
     setIsFocused(true)
@@ -92,12 +126,14 @@ export function AskMeHero({ onOpenSearch, onQuickQuestion }: AskMeHeroProps) {
             <input
               ref={inputRef}
               type="text"
+              name="search-query"
+              autoComplete="off"
               readOnly
               onFocus={handleFocus}
               onBlur={() => setIsFocused(false)}
               onClick={handleInputClick}
               placeholder={locale === 'en' ? 'e.g., How does UAE sovereign wealth fund work?' : '예: UAE 국부펀드는 어떻게 운영되나요?'}
-              className="w-full py-5 px-6 pr-28 bg-transparent text-t1 text-[15px] placeholder:text-t4/70 outline-none cursor-pointer"
+              className="w-full py-5 px-6 pr-28 bg-transparent text-t1 text-[15px] placeholder:text-t4/70 outline-none focus-visible:ring-2 focus-visible:ring-gold/50 rounded-2xl cursor-pointer"
             />
 
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -114,7 +150,7 @@ export function AskMeHero({ onOpenSearch, onQuickQuestion }: AskMeHeroProps) {
       </div>
 
       {/* Quick Questions */}
-      <div className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto stagger-fade">
+      <div className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto stagger-fade mb-6">
         {quickQuestions.map((q) => (
           <button
             key={q}
@@ -124,6 +160,18 @@ export function AskMeHero({ onOpenSearch, onQuickQuestion }: AskMeHeroProps) {
             {q}
           </button>
         ))}
+      </div>
+
+      {/* Today's UAE Tip */}
+      <div className="max-w-xs mx-auto">
+        <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-400/20">
+          <span className="text-sm font-medium bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+            {locale === 'en' ? '💡 Today' : '💡 오늘의 발견'}
+          </span>
+          <span className="text-xs text-t2">
+            {todaysTip.tip}
+          </span>
+        </div>
       </div>
     </div>
   )

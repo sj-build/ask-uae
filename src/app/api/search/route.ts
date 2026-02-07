@@ -10,7 +10,37 @@ import {
 } from '@/lib/web-search'
 import { searchUAE, formatGoogleResults } from '@/lib/google-search'
 import { fetchAmazonUAEProducts, formatAmazonResults } from '@/lib/keepa-amazon'
-import type { SearchResponse } from '@/types/search'
+
+// Save Q&A to UAE Memory (non-blocking)
+async function saveToUAEMemory(question: string, answer: string, locale: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  console.log('[UAE Memory] URL set:', !!url)
+  console.log('[UAE Memory] Key set:', !!key)
+
+  if (!url || !key) {
+    console.log('[UAE Memory] Skipping - env vars not set')
+    return
+  }
+
+  try {
+    const { saveAskMeSession } = await import('@/lib/supabase')
+    console.log('[UAE Memory] Saving question:', question.slice(0, 50))
+
+    await saveAskMeSession({
+      question,
+      answer: answer.slice(0, 10000),
+      sources_used: [],
+      model: 'claude-sonnet-4',
+      locale: locale as 'ko' | 'en',
+    })
+
+    console.log('[UAE Memory] Saved successfully!')
+  } catch (error) {
+    console.error('[UAE Memory] Failed:', error)
+  }
+}
 
 // Build e-commerce context with direct links + live Amazon data
 async function buildEcommerceContext(query: string, brandName?: string): Promise<string> {
@@ -52,7 +82,7 @@ async function buildEcommerceContext(query: string, brandName?: string): Promise
   return amazonLiveData + staticLinks
 }
 
-export async function POST(request: Request): Promise<NextResponse<SearchResponse>> {
+export async function POST(request: Request): Promise<Response> {
   const startTime = Date.now()
   let query = ''
 
@@ -77,6 +107,7 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
 
     query = parseResult.data.query
     const conversationHistory = parseResult.data.messages || []
+    const useStreaming = parseResult.data.stream ?? true // Default to streaming
 
     // Calculate turn count (user messages = turns)
     const turnCount = conversationHistory.filter(m => m.role === 'user').length
@@ -160,6 +191,79 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
       content: query,
     })
 
+    const newTurnCount = turnCount + 1
+    const limitReached = newTurnCount >= CONVERSATION_LIMITS.MAX_TURNS
+
+    // Streaming response
+    if (useStreaming) {
+      const stream = await client.messages.stream({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: claudeMessages,
+      })
+
+      const encoder = new TextEncoder()
+      let fullResponse = '' // Collect full response for UAE Memory
+
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Send metadata first
+            const metadata = JSON.stringify({
+              type: 'metadata',
+              turnCount: newTurnCount,
+              limitReached,
+            })
+            controller.enqueue(encoder.encode(`data: ${metadata}\n\n`))
+
+            // Stream the content
+            for await (const event of stream) {
+              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                fullResponse += event.delta.text
+                const chunk = JSON.stringify({
+                  type: 'content',
+                  text: event.delta.text,
+                })
+                controller.enqueue(encoder.encode(`data: ${chunk}\n\n`))
+              }
+            }
+
+            // Send done signal
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
+            controller.close()
+
+            // Log successful question (non-blocking)
+            const responseTimeMs = Date.now() - startTime
+            logQuestion({
+              query,
+              success: true,
+              responseTimeMs,
+              userAgent: request.headers.get('user-agent') || undefined,
+            }).catch(() => {
+              // Ignore logging errors
+            })
+
+            // Save to UAE Memory (must await before function ends)
+            await saveToUAEMemory(query, fullResponse, 'ko')
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Stream error'
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
+            controller.close()
+          }
+        },
+      })
+
+      return new Response(readableStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    }
+
+    // Non-streaming response (fallback)
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
@@ -175,10 +279,6 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
         return acc
       }, '')
 
-    // Check if we're near the limit
-    const newTurnCount = turnCount + 1
-    const limitReached = newTurnCount >= CONVERSATION_LIMITS.MAX_TURNS
-
     // Log successful question (non-blocking)
     const responseTimeMs = Date.now() - startTime
     logQuestion({
@@ -189,6 +289,9 @@ export async function POST(request: Request): Promise<NextResponse<SearchRespons
     }).catch(() => {
       // Ignore logging errors
     })
+
+    // Save to UAE Memory (must complete before returning)
+    await saveToUAEMemory(query, html, 'ko')
 
     return NextResponse.json({
       success: true,
