@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft } from 'lucide-react'
+import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft, ExternalLink, FileText, Newspaper } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { useSearch, type SavedConversation } from '@/hooks/useSearch'
 import { CONVERSATION_LIMITS } from '@/types/search'
@@ -56,6 +56,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     turnCount,
     limitReached,
     isNearLimit,
+    sources,
     search,
     clearConversation,
     savedConversations,
@@ -513,6 +514,84 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                           <span>분석 중...</span>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sources section - show when we have sources and not loading */}
+                {!isLoading && sources.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-brd/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileText className="w-4 h-4 text-gold/70" />
+                      <span className="text-[12px] font-medium text-t3">
+                        {locale === 'en' ? 'Sources Referenced' : '참고 자료'}
+                      </span>
+                      <span className="text-[10px] text-t4 bg-bg3 px-2 py-0.5 rounded-full">
+                        {sources.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-2">
+                      {sources.map((source, idx) => (
+                        <div
+                          key={`${source.type}-${source.id}-${idx}`}
+                          className="flex items-start gap-3 p-3 rounded-xl bg-bg/60 border border-brd/30 hover:border-gold/20 transition-colors"
+                        >
+                          <div className={`p-1.5 rounded-lg flex-shrink-0 ${
+                            source.type === 'news'
+                              ? 'bg-blue-500/10 text-blue-400'
+                              : 'bg-purple-500/10 text-purple-400'
+                          }`}>
+                            {source.type === 'news' ? (
+                              <Newspaper className="w-3.5 h-3.5" />
+                            ) : (
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="text-[12px] text-t1 font-medium line-clamp-2">
+                                {source.title}
+                              </div>
+                              {source.relevance && (
+                                <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full ${
+                                  source.relevance === 'high'
+                                    ? 'bg-accent-green/10 text-accent-green'
+                                    : source.relevance === 'medium'
+                                    ? 'bg-gold/10 text-gold'
+                                    : 'bg-t4/10 text-t4'
+                                }`}>
+                                  {source.relevance === 'high' ? '높음' : source.relevance === 'medium' ? '중간' : '낮음'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-t4">
+                              <span className="capitalize">
+                                {source.type === 'news' ? '뉴스' : source.type === 'askme' ? '이전 Q&A' : '문서'}
+                              </span>
+                              {source.published_at && (
+                                <>
+                                  <span>·</span>
+                                  <span>{new Date(source.published_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+                                </>
+                              )}
+                              {source.url && (
+                                <>
+                                  <span>·</span>
+                                  <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-0.5 text-gold hover:text-gold3 transition-colors"
+                                  >
+                                    <span>원문</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

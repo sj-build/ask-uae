@@ -1,6 +1,9 @@
 export type NewsSource = 'google' | 'naver' | 'manual'
 export type NewsPriority = 'reuters' | 'bloomberg' | 'financial_times' | 'wsj' | 'the_national' | 'khaleej_times' | 'arab_news' | 'gulf_news' | 'wam' | 'other'
 
+export type NewsImpact = 'high' | 'medium' | 'low'
+export type NewsCategory = 'politics' | 'economy' | 'society' | 'industry' | 'legal' | 'korea'
+
 export interface NewsItem {
   readonly id: string
   readonly title: string
@@ -10,8 +13,12 @@ export interface NewsItem {
   readonly publishedAt: string
   readonly tags: readonly string[]
   readonly summary?: string
+  readonly summaryKo?: string
   readonly priority: NewsPriority
   readonly imageUrl?: string
+  readonly impact?: NewsImpact
+  readonly category?: NewsCategory
+  readonly relatedSection?: string // e.g., '/politics', '/economy'
 }
 
 export interface Keyword {

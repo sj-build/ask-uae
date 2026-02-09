@@ -7,6 +7,32 @@ import { BusinessRegulations } from '@/components/legal/BusinessRegulations'
 import { FreeZones } from '@/components/legal/FreeZones'
 import { RecentLegalChanges } from '@/components/legal/RecentLegalChanges'
 import { useLocale } from '@/hooks/useLocale'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+
+const SECTION_CONTENT = {
+  ko: {
+    tldr: [
+      '법인세 9% (2023년 도입), 소득세 0%, VAT 5% - 세금 부담 최소화 가능',
+      '50+ 프리존 운영, 100% 외국인 소유 허용 - ADGM/DIFC는 영미법 적용',
+      '에미라티화 정책 강화 - 민간기업 자국민 고용 의무 2~4% (업종별 상이)',
+    ],
+    investorImplications: [
+      '프리존 vs 메인랜드 선택이 세금/규제/라이센스에 큰 영향 - 전문가 자문 권장',
+      '에미라티화 비용 고려 필수 - 불이행시 벌금, 비자 제한 등 불이익',
+    ],
+  },
+  en: {
+    tldr: [
+      'Corporate tax 9% (since 2023), income tax 0%, VAT 5% - minimize tax burden',
+      '50+ free zones, 100% foreign ownership allowed - ADGM/DIFC apply common law',
+      'Emiratization intensifying - private sector quota 2~4% (varies by industry)',
+    ],
+    investorImplications: [
+      'Free zone vs Mainland choice significantly impacts taxes/regulations/licensing - expert advice recommended',
+      'Factor in Emiratization costs - non-compliance leads to fines and visa restrictions',
+    ],
+  },
+}
 
 interface TabItem {
   readonly id: string
@@ -42,11 +68,20 @@ export default function LegalPage() {
     }
   }
 
+  const content = locale === 'en' ? SECTION_CONTENT.en : SECTION_CONTENT.ko
+
   return (
     <>
       <SectionTitle
         title={p.title}
         subtitle={p.subtitle}
+      />
+
+      <SectionHeader
+        tldr={content.tldr}
+        investorImplications={content.investorImplications}
+        source={{ sourceName: 'UAE Gov, ADGM, DIFC', asOf: '2025-01', method: 'official' }}
+        locale={locale}
       />
 
       {/* Sub-tab Navigation */}

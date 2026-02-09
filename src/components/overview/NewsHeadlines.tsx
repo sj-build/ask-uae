@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Collapsible } from '@/components/ui/Collapsible'
 import { useLocale } from '@/hooks/useLocale'
 import type { NewsItem } from '@/types/news'
 import type { Translations } from '@/i18n/types'
+import { SourceMeta } from '@/components/ui/SourceMeta'
 
 interface NewsApiResponse {
   readonly success: boolean
@@ -152,57 +152,86 @@ interface NewsGridItemProps {
   readonly locale: 'ko' | 'en'
 }
 
+const IMPACT_CONFIG = {
+  high: { label: 'HIGH', labelKo: '높음', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  medium: { label: 'MED', labelKo: '중간', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  low: { label: 'LOW', labelKo: '낮음', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+}
+
+const SECTION_ROUTES: Record<string, string> = {
+  politics: '/politics',
+  economy: '/economy',
+  society: '/society',
+  korea: '/comparison',
+  industry: '/industry',
+  legal: '/legal',
+}
+
 function NewsGridItem({ item, category, p, locale }: NewsGridItemProps) {
   const config = CATEGORY_CONFIG[category]
-  const hasImage = item.imageUrl && item.imageUrl.startsWith('http')
-  const [imgError, setImgError] = useState(false)
+  const impact = item.impact || 'medium'
+  const impactConfig = IMPACT_CONFIG[impact]
+  const relatedSection = item.relatedSection || SECTION_ROUTES[category] || '/news'
+  const summary = locale === 'ko' ? (item.summaryKo || item.summary) : item.summary
 
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex gap-4 group"
-    >
-      {/* Image/Placeholder */}
-      <div className="w-[120px] h-[80px] shrink-0 rounded-lg overflow-hidden relative">
-        {hasImage && !imgError ? (
-          <Image
-            src={item.imageUrl!}
-            alt={item.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="120px"
-            onError={() => setImgError(true)}
-            unoptimized
-          />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
-            <span className="text-3xl opacity-80">{config.icon}</span>
-          </div>
-        )}
-        {/* Category badge */}
-        <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/60 text-white backdrop-blur-sm">
-          {locale === 'en' ? config.labelEn : config.label}
+    <div className="flex gap-3 group bg-bg3/40 rounded-lg p-3 border border-brd/30 hover:border-gold/30 transition-colors">
+      {/* Category Icon */}
+      <div className="w-[56px] h-[56px] shrink-0 rounded-lg overflow-hidden">
+        <div className={`w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
+          <span className="text-2xl">{config.icon}</span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 py-0.5">
-        <h3 className="text-[13px] text-t1 font-medium leading-snug line-clamp-2 group-hover:text-gold transition-colors duration-150">
-          {item.title}
-        </h3>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[11px] text-t4 truncate max-w-[80px]">
-            {item.publisher}
+      <div className="flex-1 min-w-0">
+        {/* Header: Category + Impact */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r ${config.gradient} text-white`}>
+            {locale === 'en' ? config.labelEn : config.label}
           </span>
-          <span className="text-t4">·</span>
-          <span className="text-[11px] text-t4">
-            {formatRelativeDate(item.publishedAt, p, locale)}
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${impactConfig.color}`}>
+            {locale === 'en' ? impactConfig.label : impactConfig.labelKo}
           </span>
         </div>
+
+        {/* Title */}
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <h3 className="text-[12px] text-t1 font-medium leading-snug line-clamp-2 group-hover:text-gold transition-colors">
+            {item.title}
+          </h3>
+        </a>
+
+        {/* Summary (if available) */}
+        {summary && (
+          <p className="text-[10px] text-t3 mt-1 line-clamp-1">{summary}</p>
+        )}
+
+        {/* Footer: Publisher + Date + Related Section */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-t4/60 truncate max-w-[80px]">
+              {item.publisher}
+            </span>
+            <span className="text-t4/40">·</span>
+            <span className="text-[9px] text-t4/60">
+              {formatRelativeDate(item.publishedAt, p, locale)}
+            </span>
+          </div>
+          <Link
+            href={relatedSection}
+            className="text-[9px] text-t4 hover:text-gold transition-colors"
+          >
+            {locale === 'en' ? 'Related' : '관련'} →
+          </Link>
+        </div>
       </div>
-    </a>
+    </div>
   )
 }
 
@@ -277,11 +306,18 @@ export function NewsHeadlines() {
         <div className="font-bold text-base text-t1">{p.newsTitle}</div>
         <div className="text-[12px] text-t3">{p.newsSubtitle}</div>
       </div>
-      {!isLoading && !error && displayNews.length > 0 && (
-        <span className="ml-auto mr-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gold/10 text-gold border border-gold/20">
-          {displayNews.length}{p.newsCount}
-        </span>
-      )}
+      <div className="ml-auto flex items-center gap-3">
+        <SourceMeta
+          sourceName="Google/Naver RSS"
+          asOf={new Date().toISOString().slice(0, 10)}
+          compact
+        />
+        {!isLoading && !error && displayNews.length > 0 && (
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gold/10 text-gold border border-gold/20">
+            {displayNews.length}{p.newsCount}
+          </span>
+        )}
+      </div>
     </div>
   )
 
@@ -299,7 +335,7 @@ export function NewsHeadlines() {
 
       {!isLoading && !error && displayNews.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {displayNews.map(({ category, item }) => (
               <NewsGridItem
                 key={item.id}

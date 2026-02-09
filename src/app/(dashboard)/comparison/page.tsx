@@ -2,12 +2,39 @@
 
 import { useState } from 'react'
 import { SectionTitle } from '@/components/ui/SectionTitle'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { StatsComparisonTable } from '@/components/overview/StatsComparisonTable'
 import { PopulationDemographics } from '@/components/overview/PopulationDemographics'
 import { BilateralRelations } from '@/components/overview/BilateralRelations'
 import { GovernanceConcepts } from '@/components/overview/GovernanceConcepts'
 import { MustKnowDifferences } from '@/components/comparison/MustKnowDifferences'
+import { ComparisonKPIs } from '@/components/comparison/ComparisonKPIs'
 import { useLocale } from '@/hooks/useLocale'
+
+const SECTION_CONTENT = {
+  ko: {
+    tldr: [
+      'UAE 인구 1,010만 중 자국민 11%만 - 외국인 89%가 경제 주도',
+      '1인당 GDP $55,000 (한국의 1.5배) - 오일머니 + 무관세 기반 고소득 국가',
+      '한-UAE 교역 $180억+ (2024) - 에너지/건설/방산 중심, 투자확대 추세',
+    ],
+    investorImplications: [
+      '비즈니스 실무는 외국인(인도/파키스탄/필리핀)이 담당 - 에미라티는 의사결정권자',
+      '에미라티 문화(와스타, 체면) 이해 필수 - 관계 중심 비즈니스 문화',
+    ],
+  },
+  en: {
+    tldr: [
+      'UAE population 10.1M, only 11% nationals - 89% foreigners drive the economy',
+      'GDP per capita $55,000 (1.5x Korea) - High-income nation based on oil wealth + no taxes',
+      'Korea-UAE trade $18B+ (2024) - Focus on energy/construction/defense, investment growing',
+    ],
+    investorImplications: [
+      'Business operations run by foreigners (Indian/Pakistani/Filipino) - Emiratis are decision-makers',
+      'Understanding Emirati culture (Wasta, face) essential - Relationship-driven business culture',
+    ],
+  },
+}
 
 interface TabItem {
   readonly id: string
@@ -28,11 +55,17 @@ export default function ComparisonPage() {
   const { t, locale } = useLocale()
   const p = t.pages.comparison
   const [activeTab, setActiveTab] = useState('stats')
+  const content = locale === 'en' ? SECTION_CONTENT.en : SECTION_CONTENT.ko
 
   const renderContent = () => {
     switch (activeTab) {
       case 'stats':
-        return <StatsComparisonTable />
+        return (
+          <>
+            <ComparisonKPIs />
+            <StatsComparisonTable />
+          </>
+        )
       case 'population':
         return <PopulationDemographics />
       case 'bilateral':
@@ -51,6 +84,13 @@ export default function ComparisonPage() {
       <SectionTitle
         title={p.title}
         subtitle={p.subtitle}
+      />
+
+      <SectionHeader
+        tldr={content.tldr}
+        investorImplications={content.investorImplications}
+        source={{ sourceName: 'World Bank, UAE Gov, KOTRA', asOf: '2024', method: 'official' }}
+        locale={locale}
       />
 
       {/* Sub-tab Navigation */}

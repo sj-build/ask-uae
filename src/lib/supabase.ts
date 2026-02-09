@@ -178,3 +178,105 @@ export async function searchDocuments(searchTerm: string, options?: {
 
   return data as Document[]
 }
+
+// =============================================================================
+// RAG: Search for relevant sources
+// =============================================================================
+
+export interface SourceReference {
+  type: 'news' | 'askme' | 'document'
+  id: string
+  title: string
+  url?: string
+  summary?: string
+  published_at?: string
+  relevance: 'high' | 'medium' | 'low'
+}
+
+export async function searchRelevantSources(query: string, limit = 5): Promise<{
+  sources: SourceReference[]
+  context: string
+}> {
+  const supabase = getSupabaseAdmin()
+  const sources: SourceReference[] = []
+  let context = ''
+
+  // Extract keywords from query
+  const keywords = query
+    .toLowerCase()
+    .replace(/[^a-z가-힣0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2)
+
+  // 1. Search news_articles
+  try {
+    const { data: newsData } = await supabase
+      .from('news_articles')
+      .select('id, title, url, summary, published_at')
+      .order('published_at', { ascending: false })
+      .limit(50)
+
+    if (newsData) {
+      const matchedNews = newsData
+        .filter(article => {
+          const text = `${article.title} ${article.summary || ''}`.toLowerCase()
+          return keywords.some(kw => text.includes(kw))
+        })
+        .slice(0, limit)
+
+      for (const article of matchedNews) {
+        sources.push({
+          type: 'news',
+          id: article.id,
+          title: article.title,
+          url: article.url,
+          summary: article.summary || undefined,
+          published_at: article.published_at || undefined,
+          relevance: 'high',
+        })
+
+        if (article.summary) {
+          context += `\n[뉴스: ${article.title}]\n${article.summary}\n`
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('News search failed:', e)
+  }
+
+  // 2. Search past askme_sessions for similar questions
+  try {
+    const { data: askmeData } = await supabase
+      .from('askme_sessions')
+      .select('id, question, answer, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30)
+
+    if (askmeData) {
+      const matchedAskme = askmeData
+        .filter(session => {
+          const text = session.question.toLowerCase()
+          return keywords.some(kw => text.includes(kw))
+        })
+        .slice(0, 3) // Limit to 3 past Q&As
+
+      for (const session of matchedAskme) {
+        sources.push({
+          type: 'askme',
+          id: session.id,
+          title: session.question,
+          summary: session.answer.slice(0, 200) + '...',
+          published_at: session.created_at,
+          relevance: 'medium',
+        })
+
+        // Add abbreviated answer as context
+        context += `\n[이전 Q&A]\nQ: ${session.question}\nA: ${session.answer.slice(0, 500)}\n`
+      }
+    }
+  } catch (e) {
+    console.warn('AskMe search failed:', e)
+  }
+
+  return { sources, context }
+}

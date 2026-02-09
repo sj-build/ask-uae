@@ -10,33 +10,32 @@ import {
 } from '@/lib/web-search'
 import { searchUAE, formatGoogleResults } from '@/lib/google-search'
 import { fetchAmazonUAEProducts, formatAmazonResults } from '@/lib/keepa-amazon'
+import { searchRelevantSources, type SourceReference } from '@/lib/supabase'
 
-// Save Q&A to UAE Memory (non-blocking)
-async function saveToUAEMemory(question: string, answer: string, locale: string) {
+// Save Q&A to UAE Memory with sources
+async function saveToUAEMemory(
+  question: string,
+  answer: string,
+  locale: string,
+  sources: SourceReference[] = []
+) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  console.log('[UAE Memory] URL set:', !!url)
-  console.log('[UAE Memory] Key set:', !!key)
-
   if (!url || !key) {
-    console.log('[UAE Memory] Skipping - env vars not set')
     return
   }
 
   try {
     const { saveAskMeSession } = await import('@/lib/supabase')
-    console.log('[UAE Memory] Saving question:', question.slice(0, 50))
 
     await saveAskMeSession({
       question,
       answer: answer.slice(0, 10000),
-      sources_used: [],
+      sources_used: sources,
       model: 'claude-sonnet-4',
       locale: locale as 'ko' | 'en',
     })
-
-    console.log('[UAE Memory] Saved successfully!')
   } catch (error) {
     console.error('[UAE Memory] Failed:', error)
   }
@@ -144,9 +143,21 @@ export async function POST(request: Request): Promise<Response> {
     // Build enhanced context (parallel fetching) - only on first query
     let webSearchResults = ''
     let ecommerceResults = ''
+    let ragContext = ''
+    let ragSources: SourceReference[] = []
 
     if (isFirstQuery) {
       const searchPromises: Promise<void>[] = []
+
+      // RAG: Search Supabase for relevant sources
+      searchPromises.push(
+        searchRelevantSources(query, 5).then(({ sources, context }) => {
+          ragSources = sources
+          ragContext = context
+        }).catch((e) => {
+          console.warn('RAG search failed:', e)
+        })
+      )
 
       if (shouldWebSearch) {
         searchPromises.push(
@@ -172,8 +183,9 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Use enhanced prompt if we have additional context
-    const systemPrompt = (webSearchResults || ecommerceResults)
-      ? createEnhancedPrompt(webSearchResults || undefined, ecommerceResults || undefined)
+    const combinedContext = [ragContext, webSearchResults, ecommerceResults].filter(Boolean).join('\n\n')
+    const systemPrompt = combinedContext
+      ? createEnhancedPrompt(combinedContext || undefined, undefined)
       : SEARCH_SYSTEM_PROMPT
 
     // Build messages array for Claude
@@ -209,11 +221,12 @@ export async function POST(request: Request): Promise<Response> {
       const readableStream = new ReadableStream({
         async start(controller) {
           try {
-            // Send metadata first
+            // Send metadata first (including sources)
             const metadata = JSON.stringify({
               type: 'metadata',
               turnCount: newTurnCount,
               limitReached,
+              sources: ragSources,
             })
             controller.enqueue(encoder.encode(`data: ${metadata}\n\n`))
 
@@ -244,8 +257,8 @@ export async function POST(request: Request): Promise<Response> {
               // Ignore logging errors
             })
 
-            // Save to UAE Memory (must await before function ends)
-            await saveToUAEMemory(query, fullResponse, 'ko')
+            // Save to UAE Memory with sources
+            await saveToUAEMemory(query, fullResponse, 'ko', ragSources)
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Stream error'
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
@@ -290,14 +303,15 @@ export async function POST(request: Request): Promise<Response> {
       // Ignore logging errors
     })
 
-    // Save to UAE Memory (must complete before returning)
-    await saveToUAEMemory(query, html, 'ko')
+    // Save to UAE Memory with sources
+    await saveToUAEMemory(query, html, 'ko', ragSources)
 
     return NextResponse.json({
       success: true,
       html,
       turnCount: newTurnCount,
       limitReached,
+      sources: ragSources,
     })
   } catch (error) {
     if (error instanceof SyntaxError) {

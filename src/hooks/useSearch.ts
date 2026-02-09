@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ChatMessage } from '@/types/search'
 import { CONVERSATION_LIMITS } from '@/types/search'
+import type { SourceReference } from '@/lib/supabase'
 
 const STORAGE_KEY = 'uae-dashboard-conversations'
 const MAX_SAVED_CONVERSATIONS = 10
@@ -45,6 +46,7 @@ interface StreamEvent {
   text?: string
   turnCount?: number
   limitReached?: boolean
+  sources?: SourceReference[]
   error?: string
 }
 
@@ -54,6 +56,7 @@ export function useSearch() {
   const [streamingContent, setStreamingContent] = useState('')
   const [limitReached, setLimitReached] = useState(false)
   const [turnCount, setTurnCount] = useState(0)
+  const [sources, setSources] = useState<SourceReference[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([])
   const abortRef = useRef<AbortController | null>(null)
@@ -171,6 +174,9 @@ export function useSearch() {
                   if (event.limitReached) {
                     setLimitReached(true)
                   }
+                  if (event.sources && event.sources.length > 0) {
+                    setSources(event.sources)
+                  }
                 } else if (event.type === 'content' && event.text) {
                   accumulatedContent += event.text
                   setStreamingContent(accumulatedContent)
@@ -200,6 +206,9 @@ export function useSearch() {
           if (data.limitReached) {
             setLimitReached(true)
           }
+          if (data.sources && data.sources.length > 0) {
+            setSources(data.sources)
+          }
         } else {
           // Remove the user message on error
           setMessages(prev => prev.slice(0, -1))
@@ -223,6 +232,7 @@ export function useSearch() {
     setStreamingContent('')
     setLimitReached(false)
     setTurnCount(0)
+    setSources([])
     setCurrentConversationId(null)
     conversationIdRef.current = null
   }, [])
@@ -259,6 +269,7 @@ export function useSearch() {
     turnCount,
     limitReached,
     isNearLimit,
+    sources,
     search,
     clearConversation,
     // Conversation history

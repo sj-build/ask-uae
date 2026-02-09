@@ -1,11 +1,33 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import {
+  verifyPassword,
+  createSessionToken,
+  isRateLimited,
+  recordFailedAttempt,
+  clearAttempts,
+  getClientIP,
+} from '@/lib/auth'
 
 const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 })
 
 export async function POST(request: Request) {
+  const clientIP = getClientIP(request)
+
+  // Check rate limiting
+  const rateLimitStatus = isRateLimited(clientIP)
+  if (rateLimitStatus.limited) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many login attempts. Please try again in 15 minutes.',
+      },
+      { status: 429 }
+    )
+  }
+
   try {
     const body = await request.json()
     const parsed = loginSchema.parse(body)
@@ -19,17 +41,31 @@ export async function POST(request: Request) {
       )
     }
 
-    // NOTE: Upgrade to bcrypt comparison in production
-    if (parsed.password !== adminPassword) {
+    // Use timing-safe password comparison
+    if (!verifyPassword(parsed.password, adminPassword)) {
+      recordFailedAttempt(clientIP)
+      const remaining = rateLimitStatus.remainingAttempts - 1
+
       return NextResponse.json(
-        { success: false, error: 'Invalid password' },
+        {
+          success: false,
+          error: remaining > 0
+            ? `Invalid password. ${remaining} attempts remaining.`
+            : 'Invalid password. Too many attempts - please wait 15 minutes.',
+        },
         { status: 401 }
       )
     }
 
+    // Clear rate limit on successful login
+    clearAttempts(clientIP)
+
+    // Create signed session token
+    const sessionToken = createSessionToken()
+
     const response = NextResponse.json({ success: true })
 
-    response.cookies.set('admin_session', 'authenticated', {
+    response.cookies.set('admin_session', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

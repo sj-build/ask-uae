@@ -6,6 +6,7 @@ import { useLocale } from '@/hooks/useLocale'
 import { macroRisks as macroRisksKo } from '@/data/overview/macro-risks'
 import { macroRisks as macroRisksEn } from '@/data/overview/macro-risks.en'
 import { useLocalizedData } from '@/hooks/useLocalizedData'
+import { SourceMeta } from '@/components/ui/SourceMeta'
 
 interface StrategicPillar {
   readonly id: string
@@ -336,12 +337,20 @@ export function UAENowSection() {
 
   return (
     <section className="mb-6">
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-2xl">🇦🇪</span>
-        <h2 className="text-lg font-bold text-t1 tracking-tight">UAE Now</h2>
-        <span className="text-sm text-t4 ml-1">
-          {locale === 'en' ? 'Key Issues at a Glance' : '한눈에 보는 핵심 이슈'}
-        </span>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🇦🇪</span>
+          <h2 className="text-lg font-bold text-t1 tracking-tight">UAE Now</h2>
+          <span className="text-sm text-t4 ml-1">
+            {locale === 'en' ? 'Key Issues at a Glance' : '한눈에 보는 핵심 이슈'}
+          </span>
+        </div>
+        <SourceMeta
+          sourceName="Dashboard Analysis"
+          asOf="2025-02"
+          method="aggregated"
+          compact
+        />
       </div>
       <KeyIssuesSummary locale={locale} />
     </section>
@@ -353,14 +362,22 @@ export function UAEOpportunitiesSection() {
 
   return (
     <section className="mb-6">
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-2xl">🚀</span>
-        <h2 className="text-lg font-bold text-t1 tracking-tight">
-          {locale === 'en' ? 'UAE Opportunities' : 'UAE 기회'}
-        </h2>
-        <span className="text-sm text-t4 ml-1">
-          {locale === 'en' ? 'Investment & Growth Sectors' : '투자 및 성장 섹터'}
-        </span>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🚀</span>
+          <h2 className="text-lg font-bold text-t1 tracking-tight">
+            {locale === 'en' ? 'UAE Opportunities' : 'UAE 기회'}
+          </h2>
+          <span className="text-sm text-t4 ml-1">
+            {locale === 'en' ? 'Investment & Growth Sectors' : '투자 및 성장 섹터'}
+          </span>
+        </div>
+        <SourceMeta
+          sourceName="Multiple Sources"
+          asOf="2025-01"
+          method="aggregated"
+          compact
+        />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {OPPORTUNITY_PILLARS.map((pillar) => (
@@ -376,14 +393,22 @@ export function UAERisksSection() {
 
   return (
     <section className="mb-6">
-      <div className="flex items-center gap-2 mb-5">
-        <AlertTriangle className="w-6 h-6 text-accent-red" />
-        <h2 className="text-lg font-bold text-t1 tracking-tight">
-          {locale === 'en' ? 'UAE Risks' : 'UAE 리스크'}
-        </h2>
-        <span className="text-sm text-t4 ml-1">
-          {locale === 'en' ? 'Macro Risk Factors' : '거시 리스크 요인'}
-        </span>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="w-6 h-6 text-accent-red" />
+          <h2 className="text-lg font-bold text-t1 tracking-tight">
+            {locale === 'en' ? 'UAE Risks' : 'UAE 리스크'}
+          </h2>
+          <span className="text-sm text-t4 ml-1">
+            {locale === 'en' ? 'Macro Risk Factors' : '거시 리스크 요인'}
+          </span>
+        </div>
+        <SourceMeta
+          sourceName="Risk Analysis"
+          asOf="2025-02"
+          method="computed"
+          compact
+        />
       </div>
       <RiskSection locale={locale} />
     </section>

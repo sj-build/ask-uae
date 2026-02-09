@@ -30,6 +30,32 @@ import { politicalTrends as trendsKo } from '@/data/politics/trends'
 import { politicalTrends as trendsEn } from '@/data/politics/trends.en'
 import { useLocale } from '@/hooks/useLocale'
 import { useLocalizedData } from '@/hooks/useLocalizedData'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+
+const SECTION_CONTENT = {
+  ko: {
+    tldr: [
+      'UAE는 선거·정당 없는 연방 절대군주제, MBZ(아부다비 통치자)가 대통령 겸임',
+      '7개 에미리트 연방이나 실질 권력은 아부다비(석유 90%+, SWF $2T+)에 집중',
+      '트럼프 $200B 딜 체결, 이란 화해, 사우디 갈등 등 실용주의 외교 전개 중',
+    ],
+    investorImplications: [
+      '왕족/정부 연결이 사업 성패 좌우 - 로열 커넥션 필수',
+      'AI/에너지/부동산 국책사업 참여 기회 - Mubadala/ADQ 등 SWF 접점 확보 중요',
+    ],
+  },
+  en: {
+    tldr: [
+      'UAE is a federal absolute monarchy with no elections or parties; MBZ (Abu Dhabi ruler) serves as President',
+      'Power concentrated in Abu Dhabi (90%+ oil, $2T+ SWF) despite 7-emirate federation',
+      'Pragmatic diplomacy: Trump $200B deals, Iran rapprochement, Saudi tensions',
+    ],
+    investorImplications: [
+      'Royal/government connections are key to business success - cultivate relationships',
+      'Opportunities in AI/energy/real estate national projects - SWF access (Mubadala/ADQ) is critical',
+    ],
+  },
+}
 
 interface TabItem {
   readonly id: string
@@ -153,11 +179,20 @@ export default function PoliticsPage() {
     }
   }
 
+  const content = locale === 'en' ? SECTION_CONTENT.en : SECTION_CONTENT.ko
+
   return (
     <>
       <SectionTitle
         title={p.title}
         subtitle={p.subtitle}
+      />
+
+      <SectionHeader
+        tldr={content.tldr}
+        investorImplications={content.investorImplications}
+        source={{ sourceName: 'Dashboard Analysis', asOf: '2025-02', method: 'aggregated' }}
+        locale={locale}
       />
 
       {/* Sub-tab Navigation */}

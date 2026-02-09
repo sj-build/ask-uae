@@ -14,6 +14,32 @@ import { MacroRiskSummary } from '@/components/overview/MacroRiskSummary'
 import { useLocale } from '@/hooks/useLocale'
 import { economicTrends } from '@/data/economy/trends'
 import { economicTrends as economicTrendsEn } from '@/data/economy/trends.en'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+
+const SECTION_CONTENT = {
+  ko: {
+    tldr: [
+      'GDP $537B, 1인당 GDP $49,500 - 고소득 시장, 비석유 GDP 비중 70% 돌파',
+      'SWF 총자산 $2.5T+ (ADIA $1T, Mubadala $302B, ADQ $200B) - 세계 최대 LP 집단',
+      '부동산 $243B(+36% YoY), AI/데이터센터 $20B+, 에너지전환 가속',
+    ],
+    investorImplications: [
+      '고소득 시장으로 프리미엄 가격 책정 가능 - B2C 진출 기회',
+      'SWF는 스타트업 투자부터 대형 M&A까지 - LP 접점 확보가 핵심',
+    ],
+  },
+  en: {
+    tldr: [
+      'GDP $537B, GDP per capita $49,500 - high-income market, non-oil GDP exceeds 70%',
+      'SWF total AUM $2.5T+ (ADIA $1T, Mubadala $302B, ADQ $200B) - world\'s largest LP cluster',
+      'Real estate $243B (+36% YoY), AI/data centers $20B+, accelerating energy transition',
+    ],
+    investorImplications: [
+      'High-income market enables premium pricing - B2C entry opportunities',
+      'SWFs span from startup investments to major M&A - securing LP access is key',
+    ],
+  },
+}
 
 interface TabItem {
   readonly id: string
@@ -66,11 +92,20 @@ export default function EconomyPage() {
     }
   }
 
+  const content = locale === 'en' ? SECTION_CONTENT.en : SECTION_CONTENT.ko
+
   return (
     <>
       <SectionTitle
         title={p.title}
         subtitle={p.subtitle}
+      />
+
+      <SectionHeader
+        tldr={content.tldr}
+        investorImplications={content.investorImplications}
+        source={{ sourceName: 'IMF, World Bank, SWF Institute', asOf: '2024', method: 'aggregated' }}
+        locale={locale}
       />
 
       {/* Sub-tab Navigation */}
