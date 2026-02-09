@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getAnthropicClient } from '@/lib/anthropic'
+
+// Allow enough time for RAG search + Anthropic API call
+export const maxDuration = 55
 import { SEARCH_SYSTEM_PROMPT, createEnhancedPrompt } from '@/lib/search-prompt'
 import { SearchRequestSchema, CONVERSATION_LIMITS } from '@/types/search'
 import { logQuestion } from '@/lib/question-logger'
@@ -10,14 +13,16 @@ import {
 } from '@/lib/web-search'
 import { searchUAE, formatGoogleResults } from '@/lib/google-search'
 import { fetchAmazonUAEProducts, formatAmazonResults } from '@/lib/keepa-amazon'
-import { searchRelevantSources, type SourceReference } from '@/lib/supabase'
+import { searchRelevantSourcesV2, searchRelevantSourcesVector, upsertDocumentFromAskMe, processDocumentEmbeddings } from '@/lib/db'
+import { generateEmbedding, isEmbeddingConfigured } from '@/lib/embeddings'
+import type { SourceRef } from '@/lib/types'
 
-// Save Q&A to UAE Memory with sources
+// Save Q&A to UAE Memory with sources + documents layer + embeddings
 async function saveToUAEMemory(
   question: string,
   answer: string,
   locale: string,
-  sources: SourceReference[] = []
+  sources: SourceRef[] = []
 ) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -29,6 +34,7 @@ async function saveToUAEMemory(
   try {
     const { saveAskMeSession } = await import('@/lib/supabase')
 
+    // 1. Save to askme_sessions (existing behavior)
     await saveAskMeSession({
       question,
       answer: answer.slice(0, 10000),
@@ -36,6 +42,21 @@ async function saveToUAEMemory(
       model: 'claude-sonnet-4',
       locale: locale as 'ko' | 'en',
     })
+
+    // 2. Also upsert to documents for knowledge accumulation
+    const documentId = await upsertDocumentFromAskMe({
+      question,
+      answer: answer.slice(0, 10000),
+      sources_used: sources,
+    })
+
+    // 3. Generate embeddings for the Q&A if configured
+    if (documentId && isEmbeddingConfigured()) {
+      const content = `Q: ${question}\n\nA: ${answer.slice(0, 5000)}`
+      await processDocumentEmbeddings(documentId, content, question).catch((e) => {
+        console.warn('[UAE Memory] Embedding generation failed:', e)
+      })
+    }
   } catch (error) {
     console.error('[UAE Memory] Failed:', error)
   }
@@ -144,17 +165,38 @@ export async function POST(request: Request): Promise<Response> {
     let webSearchResults = ''
     let ecommerceResults = ''
     let ragContext = ''
-    let ragSources: SourceReference[] = []
+    let ragSources: SourceRef[] = []
 
     if (isFirstQuery) {
       const searchPromises: Promise<void>[] = []
 
-      // RAG: Search Supabase for relevant sources
+      // RAG: Try vector search first, fallback to keyword search
       searchPromises.push(
-        searchRelevantSources(query, 5).then(({ sources, context }) => {
+        (async () => {
+          try {
+            // Try vector-based search if embeddings are configured
+            if (isEmbeddingConfigured()) {
+              const { embedding } = await generateEmbedding(query)
+              const vectorResult = await searchRelevantSourcesVector(embedding, {
+                limit: 8,
+                threshold: 0.65,
+              })
+
+              if (vectorResult.sources.length > 0) {
+                ragSources = vectorResult.sources
+                ragContext = vectorResult.context
+                return
+              }
+            }
+          } catch (e) {
+            console.warn('Vector RAG search failed, falling back to keyword:', e)
+          }
+
+          // Fallback to keyword-based search (V2)
+          const { sources, context } = await searchRelevantSourcesV2(query, 8)
           ragSources = sources
           ragContext = context
-        }).catch((e) => {
+        })().catch((e) => {
           console.warn('RAG search failed:', e)
         })
       )

@@ -76,9 +76,10 @@ export async function GET(): Promise<NextResponse> {
       return dateB - dateA
     })
 
-    // Enrich top 10 items with OG images (limit to reduce latency)
-    const topItems = sorted.slice(0, 10)
-    const remainingItems = sorted.slice(10, 30)
+    // Enrich top 20 items with OG images
+    // Items with RSS media:content images are skipped quickly
+    const topItems = sorted.slice(0, 20)
+    const remainingItems = sorted.slice(20, 30)
     const enrichedTop = await enrichWithImages([...topItems])
     const finalData = [...enrichedTop, ...remainingItems]
 

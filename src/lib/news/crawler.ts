@@ -58,17 +58,43 @@ function extractTextBetweenTags(xml: string, tagName: string): string {
     .trim()
 }
 
+function extractMediaImage(itemXml: string): string | undefined {
+  // Try <media:content> tag (Google News RSS standard)
+  const mediaPatterns = [
+    /<media:content[^>]+url=["']([^"']+)["']/i,
+    /<media:thumbnail[^>]+url=["']([^"']+)["']/i,
+    /<enclosure[^>]+url=["']([^"']+)["'][^>]+type=["']image/i,
+  ]
+
+  for (const pattern of mediaPatterns) {
+    const match = itemXml.match(pattern)
+    if (match?.[1]) {
+      let url = match[1]
+      if (url.startsWith('//')) {
+        url = 'https:' + url
+      }
+      if (url.startsWith('http')) {
+        return url
+      }
+    }
+  }
+
+  return undefined
+}
+
 function parseRssItems(xmlText: string): ReadonlyArray<{
   readonly title: string
   readonly link: string
   readonly pubDate: string
   readonly source: string
+  readonly imageUrl?: string
 }> {
   const items: Array<{
     readonly title: string
     readonly link: string
     readonly pubDate: string
     readonly source: string
+    readonly imageUrl?: string
   }> = []
 
   const itemRegex = /<item>([\s\S]*?)<\/item>/g
@@ -79,13 +105,14 @@ function parseRssItems(xmlText: string): ReadonlyArray<{
     const title = extractTextBetweenTags(itemXml, 'title')
     const link = extractTextBetweenTags(itemXml, 'link')
     const pubDate = extractTextBetweenTags(itemXml, 'pubDate')
+    const imageUrl = extractMediaImage(itemXml)
 
     const sourceMatch = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)
     const source = sourceMatch
       ? sourceMatch[1].replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim()
       : ''
 
-    items.push({ title, link, pubDate, source })
+    items.push({ title, link, pubDate, source, imageUrl })
     match = itemRegex.exec(xmlText)
   }
 
@@ -93,16 +120,114 @@ function parseRssItems(xmlText: string): ReadonlyArray<{
 }
 
 /**
+ * Decode Google News article URL
+ * Google News uses base64-encoded URLs in the format: /rss/articles/CBMi...
+ */
+function decodeGoogleNewsUrl(url: string): string | null {
+  try {
+    // Extract the encoded part from the URL
+    const match = url.match(/\/articles\/([^?]+)/)
+    if (!match) return null
+
+    const encoded = match[1]
+
+    // Google News uses a modified base64 with URL-safe characters
+    // The format starts with CBMi (protobuf marker for string field 1)
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded = Buffer.from(base64, 'base64').toString('utf-8')
+
+    // The decoded string contains protobuf data
+    // The actual URL typically starts after some control characters
+    // Look for http:// or https:// in the decoded data
+    const urlMatch = decoded.match(/https?:\/\/[^\x00-\x1F\x7F]+/)
+    if (urlMatch) {
+      // Clean up any trailing protobuf data
+      let extractedUrl = urlMatch[0]
+      // Remove any trailing non-URL characters
+      const endMatch = extractedUrl.match(/^(https?:\/\/[^\s"<>]+)/)
+      if (endMatch) {
+        return endMatch[1]
+      }
+      return extractedUrl
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Resolve Google News redirect URL to actual article URL
+ */
+async function resolveGoogleNewsUrl(url: string): Promise<string> {
+  if (!url.includes('news.google.com')) {
+    return url
+  }
+
+  // First try to decode the URL directly (fastest method)
+  const decodedUrl = decodeGoogleNewsUrl(url)
+  if (decodedUrl && decodedUrl.startsWith('http')) {
+    return decodedUrl
+  }
+
+  // Fallback: Try HTTP redirect (some URLs might work)
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(5000),
+    })
+
+    // Check if we got redirected to the actual article
+    if (response.url && !response.url.includes('news.google.com')) {
+      return response.url
+    }
+
+    // Try to find the URL in the HTML response
+    const html = await response.text()
+
+    // Google News pages sometimes have the URL in data attributes or meta tags
+    const patterns = [
+      /data-n-au="([^"]+)"/,
+      /data-url="([^"]+)"/,
+      /<a[^>]+href="(https?:\/\/(?!news\.google)[^"]+)"[^>]*data-n-au/,
+      /window\.location\.replace\(['"]([^'"]+)['"]\)/,
+      /<meta[^>]+property="og:url"[^>]+content="([^"]+)"/,
+    ]
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern)
+      if (match?.[1] && !match[1].includes('news.google.com')) {
+        return match[1]
+      }
+    }
+
+    return url
+  } catch {
+    return url
+  }
+}
+
+/**
  * Fetch OG image from a news article URL
  */
 async function fetchOgImage(url: string): Promise<string | undefined> {
   try {
-    const response = await fetch(url, {
+    // URL should already be resolved by caller; skip re-resolution
+    const resolvedUrl = url.includes('news.google.com')
+      ? await resolveGoogleNewsUrl(url)
+      : url
+
+    const response = await fetch(resolvedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; UAEDashboard/1.0; +https://askuae.vercel.app)',
-        'Accept': 'text/html',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
       redirect: 'follow',
     })
 
@@ -152,29 +277,62 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
 
 /**
  * Add OG images to news items in parallel
+ * Also resolves Google News URLs to actual article URLs
  */
 export async function enrichWithImages(items: NewsItem[]): Promise<NewsItem[]> {
-  const enrichedItems = await Promise.all(
-    items.map(async (item) => {
-      if (item.imageUrl) {
-        return item // Already has image
-      }
+  // Process in smaller batches to avoid overwhelming servers
+  const batchSize = 5
+  const enrichedItems: NewsItem[] = []
 
-      const imageUrl = await fetchOgImage(item.url)
-      return imageUrl ? { ...item, imageUrl } : item
-    })
-  )
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+
+    const batchResults = await Promise.all(
+      batch.map(async (item) => {
+        // Skip if already has a valid image (including from RSS media:content)
+        if (item.imageUrl && item.imageUrl.startsWith('http')) {
+          return item
+        }
+
+        try {
+          // Resolve the actual URL first
+          const resolvedUrl = await resolveGoogleNewsUrl(item.url)
+          const imageUrl = await fetchOgImage(resolvedUrl)
+
+          return {
+            ...item,
+            url: resolvedUrl, // Update to actual article URL
+            imageUrl: imageUrl || item.imageUrl,
+          }
+        } catch {
+          return item
+        }
+      })
+    )
+
+    enrichedItems.push(...batchResults)
+
+    // Small delay between batches
+    if (i + batchSize < items.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+  }
 
   return enrichedItems
 }
 
-export async function crawlGoogleNews(keywords: readonly string[]): Promise<readonly NewsItem[]> {
+export async function crawlGoogleNews(keywords: readonly string[], locale: 'en' | 'ko' = 'en'): Promise<readonly NewsItem[]> {
   const results: NewsItem[] = []
+
+  // Determine locale settings
+  const localeParams = locale === 'ko'
+    ? { hl: 'ko', gl: 'KR', ceid: 'KR:ko' }
+    : { hl: 'en', gl: 'AE', ceid: 'AE:en' }
 
   for (const keyword of keywords) {
     try {
       const encodedQuery = encodeURIComponent(keyword)
-      const url = `${GOOGLE_NEWS_RSS_BASE}?q=${encodedQuery}&hl=en&gl=AE&ceid=AE:en`
+      const url = `${GOOGLE_NEWS_RSS_BASE}?q=${encodedQuery}&hl=${localeParams.hl}&gl=${localeParams.gl}&ceid=${localeParams.ceid}`
 
       const response = await fetch(url, {
         headers: {
@@ -199,6 +357,7 @@ export async function crawlGoogleNews(keywords: readonly string[]): Promise<read
         publishedAt: parseRssDate(item.pubDate),
         tags: [keyword],
         priority: classifyPriority(item.source),
+        ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
       }))
 
       results.push(...newsItems)

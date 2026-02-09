@@ -173,14 +173,32 @@ function NewsGridItem({ item, category, p, locale }: NewsGridItemProps) {
   const impactConfig = IMPACT_CONFIG[impact]
   const relatedSection = item.relatedSection || SECTION_ROUTES[category] || '/news'
   const summary = locale === 'ko' ? (item.summaryKo || item.summary) : item.summary
+  // Check for valid image URL (only exclude known broken patterns)
+  const isPlaceholder = item.imageUrl?.includes('google.com/images/branding')
+  const hasImage = item.imageUrl && item.imageUrl.startsWith('http') && !isPlaceholder
 
   return (
     <div className="flex gap-3 group bg-bg3/40 rounded-lg p-3 border border-brd/30 hover:border-gold/30 transition-colors">
-      {/* Category Icon */}
-      <div className="w-[56px] h-[56px] shrink-0 rounded-lg overflow-hidden">
-        <div className={`w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
-          <span className="text-2xl">{config.icon}</span>
-        </div>
+      {/* Article Image or Category Icon */}
+      <div className={`${hasImage ? 'w-[100px] h-[70px]' : 'w-[56px] h-[56px]'} shrink-0 rounded-lg overflow-hidden`}>
+        {hasImage ? (
+          <img
+            src={item.imageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              // Fallback to icon on image load error
+              const target = e.currentTarget
+              target.style.display = 'none'
+              target.parentElement!.innerHTML = `<div class="w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center"><span class="text-2xl">${config.icon}</span></div>`
+            }}
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
+            <span className="text-2xl">{config.icon}</span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
