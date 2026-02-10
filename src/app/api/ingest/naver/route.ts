@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { timingSafeEqual } from 'crypto'
 import { searchNaverNews } from '@/lib/naver'
 import { saveNewsItems, startIngestionRun, finishIngestionRun } from '@/lib/newsStore'
 
@@ -27,7 +28,13 @@ function checkAuth(request: Request): boolean {
   const secret = request.headers.get('x-admin-secret')
     || request.headers.get('authorization')?.replace('Bearer ', '')
   const expected = process.env.ADMIN_PASSWORD ?? process.env.CRON_SECRET
-  return Boolean(expected && secret === expected)
+  if (!expected || !secret) return false
+  if (secret.length !== expected.length) return false
+  try {
+    return timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
+  } catch {
+    return false
+  }
 }
 
 /**
