@@ -39,7 +39,7 @@ export interface Document {
   content: string
   title?: string
   summary?: string
-  source: 'news' | 'dashboard' | 'askme' | 'research' | 'manual'
+  source: 'news' | 'dashboard' | 'askme' | 'research' | 'manual' | 'insight' | 'place'
   category?: string
   tags: string[]
   metadata: Record<string, unknown>

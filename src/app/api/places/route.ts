@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseClient } from '@/lib/supabase'
 
+export const maxDuration = 55
+
 /**
  * GET /api/places?city=abudhabi|dubai&category=...&q=...
  *
@@ -20,6 +22,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       .select('id, slug, city, name_en, name_ko, tagline_en, tagline_ko, categories, best_for, icon, free_zone, keywords, as_of, confidence, links')
       .order('confidence', { ascending: false })
       .order('name_en', { ascending: true })
+      .limit(100)
 
     if (city) {
       query = query.eq('city', city)
@@ -37,7 +40,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     let items = data ?? []
 
-    // Client-side keyword search (text match against name, tagline, keywords)
+    // Server-side search would be ideal, but with <100 places, client-side is acceptable
     if (q) {
       const lower = q.toLowerCase()
       items = items.filter((place) => {
@@ -58,7 +61,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ items })
   } catch (error) {
     console.error('Places API error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ items: [], error: msg }, { status: 500 })
+    return NextResponse.json({ items: [], error: 'Failed to fetch places' }, { status: 500 })
   }
 }

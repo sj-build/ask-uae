@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseClient } from '@/lib/supabase'
 
+export const maxDuration = 55
+
 /**
  * GET /api/places/:slug
  *
@@ -12,6 +14,11 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const { slug } = await params
+
+    if (!slug || !/^[a-z0-9-]+$/.test(slug) || slug.length > 100) {
+      return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
+    }
+
     const supabase = getSupabaseClient()
 
     // Fetch place
@@ -28,25 +35,24 @@ export async function GET(
       )
     }
 
-    // Fetch related news using keywords
+    // Fetch related news using keyword ilike filters (server-side)
     let relatedNews: Array<{ id: string; title: string; url: string; summary: string | null; published_at: string | null }> = []
 
-    if (place.keywords && place.keywords.length > 0) {
+    const keywords = (place.keywords as string[] | null) ?? []
+    if (keywords.length > 0) {
+      const orFilter = keywords
+        .slice(0, 5)
+        .map((k: string) => `title.ilike.%${k}%,summary.ilike.%${k}%`)
+        .join(',')
+
       const { data: newsData } = await supabase
         .from('news_articles')
         .select('id, title, url, summary, published_at')
+        .or(orFilter)
         .order('published_at', { ascending: false })
-        .limit(50)
+        .limit(5)
 
-      if (newsData) {
-        const keywords = (place.keywords as string[]).map((k: string) => k.toLowerCase())
-        relatedNews = newsData
-          .filter((article) => {
-            const text = `${article.title} ${article.summary ?? ''}`.toLowerCase()
-            return keywords.some((kw) => text.includes(kw))
-          })
-          .slice(0, 5)
-      }
+      relatedNews = newsData ?? []
     }
 
     return NextResponse.json({
@@ -55,7 +61,6 @@ export async function GET(
     })
   } catch (error) {
     console.error('Place detail API error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to load place detail' }, { status: 500 })
   }
 }

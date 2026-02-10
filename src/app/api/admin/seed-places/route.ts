@@ -24,17 +24,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     let upserted = 0
     let synced = 0
 
-    // 1. Seed places table
-    for (const place of placesData) {
-      const { error } = await supabase
-        .from('places')
-        .upsert(place, { onConflict: 'slug' })
+    // 1. Batch seed places table
+    const { error: batchError } = await supabase
+      .from('places')
+      .upsert(placesData, { onConflict: 'slug' })
 
-      if (error) {
-        console.error(`Failed to upsert ${place.slug}:`, error.message)
-      } else {
-        upserted++
-      }
+    if (batchError) {
+      console.error('Batch upsert failed:', batchError.message)
+    } else {
+      upserted = placesData.length
     }
 
     // 2. Sync to documents for RAG
@@ -61,7 +59,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     })
   } catch (error) {
     console.error('Seed places error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ success: false, error: msg }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Seed places failed' }, { status: 500 })
   }
 }
