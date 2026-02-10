@@ -14,15 +14,16 @@ interface NewsApiResponse {
   readonly error?: string
 }
 
-const KOREA_KEYWORDS = [
-  '한국', 'korea', 'korean', 'k-', 'hyundai', 'samsung', 'lg', 'hanwha',
-  'kepco', 'seoul', 'posco', 'sk ', 'cepa', '한-uae', 'uae-한국',
-  'korean air', 'naver', 'kakao', 'doosan', 'daewoo',
+const KOREA_UAE_KEYWORDS = [
+  '한국', '한-uae', 'uae-한국', '한국 uae', '한화', '삼성', '현대', 'lg',
+  '포스코', '두산', 'kepco', '바라카', 'cepa', 'sk ', '대우',
+  'korea', 'korean', 'hyundai', 'samsung', 'hanwha', 'posco', 'doosan',
+  'korean air', 'k-pop', 'k-beauty', 'k-food', 'hallyu', '한류',
 ] as const
 
-function isKoreaRelated(item: NewsItem): boolean {
-  const searchText = `${item.title} ${item.tags.join(' ')}`.toLowerCase()
-  return KOREA_KEYWORDS.some(kw => searchText.includes(kw.toLowerCase()))
+function isKoreaUaeNews(item: NewsItem): boolean {
+  const searchText = `${item.title} ${item.summary ?? ''} ${item.tags.join(' ')}`.toLowerCase()
+  return KOREA_UAE_KEYWORDS.some(kw => searchText.includes(kw.toLowerCase()))
 }
 
 function splitNews(items: readonly NewsItem[]): {
@@ -33,16 +34,17 @@ function splitNews(items: readonly NewsItem[]): {
   const uaeLocal: NewsItem[] = []
 
   for (const item of items) {
-    if (isKoreaRelated(item)) {
+    if (isKoreaUaeNews(item)) {
       uaeKorea.push(item)
     } else {
+      // Only show English-source news or Naver news that explicitly mention UAE
       uaeLocal.push(item)
     }
   }
 
   return {
-    uaeLocal: uaeLocal.slice(0, 4),
-    uaeKorea: uaeKorea.slice(0, 4),
+    uaeLocal: uaeLocal.slice(0, 5),
+    uaeKorea: uaeKorea.slice(0, 5),
   }
 }
 
@@ -73,12 +75,6 @@ function formatRelativeDate(
   }
 }
 
-const IMPACT_CONFIG = {
-  high: { label: 'HIGH', labelKo: '높음', color: 'text-red-400' },
-  medium: { label: 'MED', labelKo: '중간', color: 'text-yellow-400' },
-  low: { label: 'LOW', labelKo: '낮음', color: 'text-gray-400' },
-} as const
-
 interface NewsListItemProps {
   readonly item: NewsItem
   readonly p: Translations['pages']['home']
@@ -86,39 +82,32 @@ interface NewsListItemProps {
 }
 
 function NewsListItem({ item, p, locale }: NewsListItemProps) {
-  const impact = item.impact || 'medium'
-  const impactConfig = IMPACT_CONFIG[impact]
   const summary = locale === 'ko' ? (item.summaryKo || item.summary) : item.summary
 
   return (
     <div className="group py-2.5 border-b border-brd/20 last:border-b-0">
-      <div className="flex items-start gap-2">
-        <span className={`text-[9px] font-bold mt-0.5 shrink-0 ${impactConfig.color}`}>
-          {locale === 'en' ? impactConfig.label : impactConfig.labelKo}
-        </span>
-        <div className="flex-1 min-w-0">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
-          >
-            <h3 className="text-[12px] text-t1 font-medium leading-snug line-clamp-2 group-hover:text-gold transition-colors">
-              {item.title}
-            </h3>
-          </a>
-          {summary && (
-            <p className="text-[10px] text-t3 mt-0.5 line-clamp-1">{summary}</p>
-          )}
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[9px] text-t4/60 truncate max-w-[100px]">
-              {item.publisher}
-            </span>
-            <span className="text-t4/40">·</span>
-            <span className="text-[9px] text-t4/60">
-              {formatRelativeDate(item.publishedAt, p, locale)}
-            </span>
-          </div>
+      <div className="flex-1 min-w-0">
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <h3 className="text-[12px] text-t1 font-medium leading-snug line-clamp-2 group-hover:text-gold transition-colors">
+            {item.title}
+          </h3>
+        </a>
+        {summary && (
+          <p className="text-[10px] text-t3 mt-0.5 line-clamp-1">{summary}</p>
+        )}
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className="text-[9px] text-t4/60 truncate max-w-[100px]">
+            {item.publisher}
+          </span>
+          <span className="text-t4/40">·</span>
+          <span className="text-[9px] text-t4/60">
+            {formatRelativeDate(item.publishedAt, p, locale)}
+          </span>
         </div>
       </div>
     </div>
@@ -248,7 +237,7 @@ export function NewsHeadlines() {
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-brd/40">
                 <span className="text-sm">🇦🇪</span>
                 <h3 className="text-[13px] font-bold text-t1">
-                  {locale === 'en' ? 'UAE News' : 'UAE 현지 뉴스'}
+                  {locale === 'en' ? 'UAE News' : 'UAE 뉴스'}
                 </h3>
                 <span className="text-[10px] text-t4 ml-auto">
                   {uaeLocal.length}{locale === 'en' ? ' articles' : '건'}
