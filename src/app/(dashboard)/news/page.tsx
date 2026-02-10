@@ -110,6 +110,29 @@ function isMajorMedia(publisher: string): boolean {
   return MAJOR_MEDIA.some(media => publisher.toLowerCase().includes(media.toLowerCase()))
 }
 
+// Category badge colors
+const CATEGORY_BADGE: Record<string, { label: string; labelEn: string; color: string }> = {
+  'uae-korea': { label: '🇰🇷 한-UAE', labelEn: '🇰🇷 KR-UAE', color: 'bg-gold/15 text-gold border-gold/25' },
+  investment: { label: '💰 투자', labelEn: '💰 Investment', color: 'bg-accent-green/15 text-accent-green border-accent-green/25' },
+  industry: { label: '🏭 산업', labelEn: '🏭 Industry', color: 'bg-accent-blue/15 text-accent-blue border-accent-blue/25' },
+  'major-headlines': { label: '📰 글로벌', labelEn: '📰 Global', color: 'bg-accent-purple/15 text-accent-purple border-accent-purple/25' },
+}
+
+function detectCategory(item: { title: string; tags: readonly string[]; summary?: string | null; publisher: string }): string | null {
+  const text = `${item.title} ${item.tags.join(' ')} ${item.summary ?? ''}`.toLowerCase()
+
+  // Korea first
+  if (NEWS_CATEGORIES[0].keywords.some(k => text.includes(k.toLowerCase()))) return 'uae-korea'
+  // Investment
+  if (NEWS_CATEGORIES[2].keywords.some(k => text.includes(k.toLowerCase()))) return 'investment'
+  // Industry
+  if (NEWS_CATEGORIES[3].keywords.some(k => text.includes(k.toLowerCase()))) return 'industry'
+  // Major media
+  if (isMajorMedia(item.publisher)) return 'major-headlines'
+
+  return null
+}
+
 function formatRelativeDate(
   dateString: string,
   p: Translations['pages']['home'],
@@ -168,7 +191,8 @@ interface NewsCardProps {
 }
 
 function NewsCard({ item, p, locale, highlight }: NewsCardProps) {
-  const isMajor = isMajorMedia(item.publisher)
+  const category = detectCategory(item)
+  const badge = category ? CATEGORY_BADGE[category] : null
 
   return (
     <a
@@ -181,47 +205,28 @@ function NewsCard({ item, p, locale, highlight }: NewsCardProps) {
           : 'bg-bg3 border-brd hover:bg-bg4/50'
       }`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        {item.source === 'naver' && (
-          <span className="px-1 py-px rounded text-[8px] font-medium text-t4/60 bg-bg2 border border-brd/50">
-            KR
+      {/* Category + time */}
+      <div className="flex items-center gap-2 mb-2.5">
+        {badge && (
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.color}`}>
+            {locale === 'en' ? badge.labelEn : badge.label}
           </span>
         )}
-        <span
-          className={`px-2 py-0.5 rounded font-semibold border ${getPublisherBadgeStyle(item.publisher)} ${isMajor ? 'ring-1 ring-gold/30' : ''} ${
-            item.publisher === 'Naver News' ? 'text-[9px] text-t4/70' : 'text-[10px]'
-          }`}
-        >
-          {item.publisher}
-        </span>
-        <span className="text-[11px] text-t4 ml-auto">
+        <span className="text-[11px] text-t4 ml-auto whitespace-nowrap">
           {formatRelativeDate(item.publishedAt, p, locale)}
         </span>
       </div>
 
-      <h3 className={`text-[13px] font-semibold leading-snug group-hover:text-gold transition-colors duration-150 line-clamp-3 mb-2 ${highlight ? 'text-gold' : 'text-t1'}`}>
+      {/* Title */}
+      <h3 className={`text-[15px] font-bold leading-snug group-hover:text-gold transition-colors duration-150 line-clamp-2 mb-2 ${highlight ? 'text-gold' : 'text-t1'}`}>
         {item.title}
       </h3>
 
-      {item.summary && (
-        <p className="text-[11px] text-t3 leading-relaxed line-clamp-2 mb-2">
-          {item.summary}
-        </p>
-      )}
-
-      <div className="flex items-center gap-1 flex-wrap mt-auto pt-2">
-        {item.tags.filter(shouldShowTag).slice(0, 2).map((tag) => (
-          <span
-            key={tag}
-            className={`px-1.5 py-0.5 rounded text-[9px] border ${
-              isHighlightTag(tag)
-                ? 'bg-gold/10 text-gold border-gold/25 font-semibold'
-                : 'text-t4 bg-bg2 border-brd'
-            }`}
-          >
-            {tag}
-          </span>
-        ))}
+      {/* Publisher */}
+      <div className="flex items-center gap-2 mt-auto pt-2">
+        <span className="text-[11px] text-t4">
+          {item.publisher}
+        </span>
       </div>
     </a>
   )
