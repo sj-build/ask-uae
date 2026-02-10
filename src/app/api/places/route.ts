@@ -40,25 +40,54 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     let items = data ?? []
 
-    // Attach active hero images from neighborhood_images (graceful if table doesn't exist yet)
+    // Attach hero images: place_image_selected (priority) > neighborhood_images (legacy)
     const slugs = items.map(p => p.slug)
     if (slugs.length > 0) {
       try {
-        const { data: images } = await supabase
+        // Priority 1: Admin-confirmed images from place_image_selected
+        const { data: selectedImages } = await supabase
+          .from('place_image_selected')
+          .select('place_slug, image_url, source')
+          .in('place_slug', slugs)
+
+        const selectedMap = new Map(
+          (selectedImages ?? []).map(img => [img.place_slug, img])
+        )
+
+        // Priority 2: Legacy neighborhood_images (active)
+        const { data: legacyImages } = await supabase
           .from('neighborhood_images')
           .select('neighborhood_slug, public_url, photographer, photographer_url, source_url, attribution_text')
           .in('neighborhood_slug', slugs)
           .eq('is_active', true)
 
-        if (images && images.length > 0) {
-          const imageMap = new Map(images.map(img => [img.neighborhood_slug, img]))
-          items = items.map(place => {
-            const img = imageMap.get(place.slug)
-            return img ? { ...place, hero_image: img } : place
-          })
-        }
+        const legacyMap = new Map(
+          (legacyImages ?? []).map(img => [img.neighborhood_slug, img])
+        )
+
+        items = items.map(place => {
+          const sel = selectedMap.get(place.slug)
+          if (sel) {
+            const src = (sel.source ?? {}) as Record<string, string>
+            return {
+              ...place,
+              hero_image: {
+                public_url: sel.image_url,
+                photographer: src.photographer,
+                photographer_url: src.photographer_url,
+                source_url: src.source_url,
+                attribution_text: src.attribution,
+              },
+            }
+          }
+          const legacy = legacyMap.get(place.slug)
+          if (legacy) {
+            return { ...place, hero_image: legacy }
+          }
+          return place
+        })
       } catch {
-        // neighborhood_images table may not exist yet — skip gracefully
+        // Tables may not exist yet — skip gracefully
       }
     }
 

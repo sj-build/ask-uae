@@ -1,25 +1,21 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { refreshNeighborhoodImages } from '@/lib/image-refresh'
+import { collectCandidates } from '@/lib/image-refresh'
 
 export const maxDuration = 55
 
 const RequestSchema = z.object({
-  city: z.enum(['abudhabi', 'dubai']),
   slug: z.string().regex(/^[a-z0-9-]+$/).max(80),
   queries: z.array(z.string().max(200)).min(1).max(5).optional(),
-  setActive: z.boolean().default(true),
-  topN: z.number().int().min(1).max(5).default(3),
+  maxCandidates: z.number().int().min(1).max(10).default(6),
 })
 
+/**
+ * POST /api/images/refresh
+ * Collects candidates for a place slug. Does NOT auto-confirm.
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const secret = request.headers.get('x-admin-secret') || request.headers.get('authorization')?.replace('Bearer ', '')
-    const expected = process.env.ADMIN_PASSWORD ?? process.env.CRON_SECRET
-    if (!expected || secret !== expected) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
     const parsed = RequestSchema.safeParse(body)
     if (!parsed.success) {
@@ -29,20 +25,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       )
     }
 
-    const result = await refreshNeighborhoodImages({
-      city: parsed.data.city,
+    const result = await collectCandidates({
       slug: parsed.data.slug,
       queries: parsed.data.queries,
-      setActive: parsed.data.setActive,
-      topN: parsed.data.topN,
+      maxCandidates: parsed.data.maxCandidates,
     })
 
     return NextResponse.json(result, { status: result.success ? 200 : 404 })
   } catch (error) {
-    console.error('Image refresh error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Image refresh failed' },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : 'Image refresh failed'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

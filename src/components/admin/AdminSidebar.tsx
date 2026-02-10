@@ -19,6 +19,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/admin/news', label: 'News', icon: '◇' },
   { href: '/admin/keywords', label: 'Keywords', icon: '◆' },
   { href: '/admin/askme', label: 'Ask Me AI', icon: '◉' },
+  { href: '/admin/place-images', label: 'Place Images', icon: '▧' },
   { href: '/admin/content', label: 'Content', icon: '▣' },
   { href: '/admin/logs', label: 'Logs', icon: '▤' },
 ] as const
