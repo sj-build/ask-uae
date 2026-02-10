@@ -1,8 +1,91 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { verifySessionToken } from '@/lib/auth'
 
 export const maxDuration = 55
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_IMAGE_DOMAINS = [
+  'images.unsplash.com',
+  'plus.unsplash.com',
+]
+
+async function checkAdminAuth(): Promise<boolean> {
+  const cookieStore = await cookies()
+  const session = cookieStore.get('admin_session')
+  if (!session?.value) return false
+  const { valid } = verifySessionToken(session.value)
+  return valid
+}
+
+function validateImageBuffer(buffer: Buffer): string | null {
+  if (buffer.length > MAX_IMAGE_SIZE) {
+    return `Image exceeds maximum size of ${MAX_IMAGE_SIZE / 1024 / 1024}MB`
+  }
+  // JPEG magic bytes: FF D8 FF
+  if (buffer.length >= 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return null
+  }
+  // PNG magic bytes: 89 50 4E 47
+  if (buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return null
+  }
+  return 'Downloaded file is not a valid JPEG or PNG image'
+}
+
+function isAllowedDomain(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    const blocked = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254', '10.', '192.168.']
+    if (blocked.some(b => parsed.hostname.includes(b))) return false
+    return ALLOWED_IMAGE_DOMAINS.some(d => parsed.hostname.endsWith(d))
+  } catch {
+    return false
+  }
+}
+
+async function downloadAndMirror(
+  imageSourceUrl: string,
+  slug: string,
+): Promise<{ imageUrl: string; buffer: Buffer } | { error: string; status: number }> {
+  const supabase = getSupabaseAdmin()
+
+  const imageResponse = await fetch(imageSourceUrl, {
+    signal: AbortSignal.timeout(15000),
+  })
+
+  if (!imageResponse.ok) {
+    return { error: `Failed to download image: ${imageResponse.status}`, status: 502 }
+  }
+
+  const arrayBuffer = await imageResponse.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  const validationError = validateImageBuffer(buffer)
+  if (validationError) {
+    return { error: validationError, status: 400 }
+  }
+
+  const storagePath = `place-selected/${slug}.jpg`
+  const { error: uploadError } = await supabase.storage
+    .from('neighborhood-images')
+    .upload(storagePath, buffer, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    })
+
+  if (uploadError) {
+    return { error: `Storage upload failed: ${uploadError.message}`, status: 500 }
+  }
+
+  const { data: urlData } = supabase.storage
+    .from('neighborhood-images')
+    .getPublicUrl(storagePath)
+
+  return { imageUrl: urlData.publicUrl, buffer }
+}
 
 /**
  * GET /api/admin/place-images?slug=difc
@@ -10,6 +93,11 @@ export const maxDuration = 55
  * Without slug: returns all places overview.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const isAuthed = await checkAdminAuth()
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const slug = searchParams.get('slug')
@@ -36,7 +124,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       })
     }
 
-    // Overview: all selected images
     const { data: allSelected } = await supabase
       .from('place_image_selected')
       .select('place_slug, image_url, updated_at')
@@ -62,6 +149,11 @@ const SelectSchema = z.object({
  * Select a candidate: download -> mirror to Storage -> upsert place_image_selected
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const isAuthed = await checkAdminAuth()
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const parsed = SelectSchema.safeParse(body)
@@ -86,41 +178,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     let sourceInfo: Record<string, unknown>
 
     if (manual_url) {
-      // Manual URL — download and mirror to Storage
-      const imageResponse = await fetch(manual_url, {
-        signal: AbortSignal.timeout(15000),
-      })
-
-      if (!imageResponse.ok) {
+      // SSRF protection: only allow known image domains
+      if (!isAllowedDomain(manual_url)) {
         return NextResponse.json(
-          { error: `Failed to download image: ${imageResponse.status}` },
-          { status: 502 }
+          { error: 'Only Unsplash image URLs are allowed' },
+          { status: 400 }
         )
       }
 
-      const arrayBuffer = await imageResponse.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const storagePath = `place-selected/${slug}.jpg`
-
-      const { error: uploadError } = await supabase.storage
-        .from('neighborhood-images')
-        .upload(storagePath, buffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        })
-
-      if (uploadError) {
-        return NextResponse.json(
-          { error: `Storage upload failed: ${uploadError.message}` },
-          { status: 500 }
-        )
+      const result = await downloadAndMirror(manual_url, slug)
+      if ('error' in result) {
+        return NextResponse.json({ error: result.error }, { status: result.status })
       }
-
-      const { data: urlData } = supabase.storage
-        .from('neighborhood-images')
-        .getPublicUrl(storagePath)
-
-      imageUrl = urlData.publicUrl
+      imageUrl = result.imageUrl
       sourceInfo = { provider: 'manual', url: manual_url }
     } else {
       // Select from candidates
@@ -134,41 +204,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
       }
 
-      // Download the image
-      const imageResponse = await fetch(candidate.image_url, {
-        signal: AbortSignal.timeout(15000),
-      })
-
-      if (!imageResponse.ok) {
-        return NextResponse.json(
-          { error: `Failed to download image: ${imageResponse.status}` },
-          { status: 502 }
-        )
+      const result = await downloadAndMirror(candidate.image_url, slug)
+      if ('error' in result) {
+        return NextResponse.json({ error: result.error }, { status: result.status })
       }
-
-      const arrayBuffer = await imageResponse.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const storagePath = `place-selected/${slug}.jpg`
-
-      const { error: uploadError } = await supabase.storage
-        .from('neighborhood-images')
-        .upload(storagePath, buffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        })
-
-      if (uploadError) {
-        return NextResponse.json(
-          { error: `Storage upload failed: ${uploadError.message}` },
-          { status: 500 }
-        )
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('neighborhood-images')
-        .getPublicUrl(storagePath)
-
-      imageUrl = urlData.publicUrl
+      imageUrl = result.imageUrl
       sourceInfo = {
         provider: candidate.provider,
         provider_ref: candidate.provider_ref,
