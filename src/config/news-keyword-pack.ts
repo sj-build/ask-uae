@@ -5,67 +5,49 @@ export const NEWS_KEYWORD_PACK = {
   // -----------------------------
   google_news_rss_en: {
 
-    // UAE 현지 뉴스 — 주요 영어 미디어에서 UAE 관련 기사
+    // UAE 현지 뉴스 — 주요 영어 미디어에서 UAE 관련 기사 (10 queries)
     uae_local: {
       always_on: [
-        // Broad UAE coverage from major outlets
+        // Broad UAE coverage
         '"Abu Dhabi" economy OR investment OR policy',
         '"Dubai" business OR economy OR government',
-        'UAE government policy OR reform OR strategy',
+        'UAE government policy OR reform OR cabinet',
 
-        // Key entities that generate quality English media coverage
-        'ADNOC',
-        'Mubadala investment',
-        'ADIA investment',
-        'ADQ acquisition OR investment',
-        'G42 AI UAE',
-        'Masdar renewable energy',
-        'Emirates airline',
-        'DP World logistics',
+        // Key entities (consolidated)
+        'ADNOC OR Masdar OR "DP World"',
+        'Mubadala OR ADIA OR ADQ investment',
+        'G42 AI OR "UAE data center" OR Stargate',
+        'Emirates airline OR Etihad',
 
         // Major sectors
-        'UAE AI data center',
         'Abu Dhabi sovereign wealth fund',
-        'Dubai real estate market',
-        'UAE fintech regulation VARA ADGM',
-        'Abu Dhabi industrial strategy',
-
-        // Governance / mega-agendas
-        'UAE cabinet decision',
-        'Dubai Economic Agenda D33',
-        'Abu Dhabi economic vision',
-        'UAE diversification strategy',
-        'ADIO Abu Dhabi investment office',
+        'Dubai real estate OR fintech OR VARA',
+        'UAE diversification OR industrial strategy OR D33',
       ] as const,
     },
 
-    // Deal/investment signals (no Korea overlap)
+    // Deal/investment signals (no Korea overlap, 10 queries)
     deal: {
       always_on: [
         // Capital / Policy / Platforms
-        'ADGM venture fund',
-        'Hub71 startup',
-        'DIFC venture capital',
-        'Dubai Future Foundation',
-        'Abu Dhabi Finance Week ADFW',
-        'VARA regulation crypto',
+        'ADGM OR DIFC venture capital fund',
+        'Hub71 startup OR accelerator',
+        'Abu Dhabi Finance Week OR ADFW',
 
         // AI / Infra / Tech
-        'sovereign AI UAE',
-        'UAE robotics',
-        'UAE healthcare AI',
-        'Stargate UAE data center',
+        'sovereign AI UAE OR robotics',
+        'UAE healthcare AI OR medical tourism',
 
-        // Beauty / Healthcare / Consumer
-        'dermocosmetics UAE',
-        'medical tourism UAE',
-        'Chalhoub Group beauty',
+        // Beauty / Consumer
+        'dermocosmetics OR Chalhoub beauty UAE',
 
         // Web3 / Finance
-        'UAE stablecoin',
-        'digital dirham',
-        'CBDC UAE',
-        'tokenization ADGM',
+        'UAE stablecoin OR "digital dirham" OR CBDC',
+        'VARA regulation crypto',
+        'tokenization ADGM OR DIFC',
+
+        // Dubai Future
+        'Dubai Future Foundation OR Museum',
       ] as const,
     },
 
@@ -116,26 +98,18 @@ export const NEWS_KEYWORD_PACK = {
       always_on: [
         // 국부펀드 / 플랫폼
         '아부다비 국부펀드 투자',
-        '무바달라 투자',
-        'ADQ 투자',
-        'ADIA 투자',
-        'ADGM 펀드',
-        '허브71',
+        '무바달라 ADIA ADQ 투자',
+        'ADGM 허브71 펀드',
 
         // AI / 테크
-        'UAE AI 데이터센터',
-        'G42 아부다비',
-        'UAE 로봇',
+        'UAE AI 데이터센터 G42',
 
         // K-Beauty / 헬스케어
-        'UAE K뷰티',
-        'UAE 한국 화장품',
+        'UAE K뷰티 한국 화장품',
         'UAE 의료관광',
-        '중동 K뷰티',
 
         // 크립토/금융
-        'UAE 스테이블코인',
-        'VARA 가상자산',
+        'UAE 스테이블코인 VARA',
         'ADGM 토큰증권',
       ] as const,
     },

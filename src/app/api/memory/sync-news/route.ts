@@ -129,10 +129,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const cleaned = filterNoise(allItems)
     const deduplicated = deduplicateNews(cleaned)
 
-    // Fetch OG images for articles (limit to top 50 for performance)
-    const topArticles = deduplicated.slice(0, 50)
+    // Fetch OG images for articles (limit to top 15 for Vercel 55s budget)
+    const topArticles = deduplicated.slice(0, 15)
     const enrichedTop = await enrichWithImages([...topArticles])
-    const enrichedAll = [...enrichedTop, ...deduplicated.slice(50)]
+    const enrichedAll = [...enrichedTop, ...deduplicated.slice(15)]
 
     const tagged = tagNewsBatch(enrichedAll, ALL_KEYWORDS)
 
@@ -174,6 +174,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     let embeddingsGenerated = 0
 
     const shouldGenerateEmbeddings = isEmbeddingConfigured()
+    const embeddingCap = 10 // Cap embeddings to stay within 55s budget
 
     for (const article of articles) {
       try {
@@ -189,7 +190,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         documentsUpserted++
 
         // Generate embeddings if configured and document was created
-        if (shouldGenerateEmbeddings && documentId && article.summary) {
+        if (shouldGenerateEmbeddings && documentId && article.summary && embeddingsGenerated < embeddingCap) {
           try {
             const content = [article.title, article.summary].filter(Boolean).join('\n\n')
             await processDocumentEmbeddings(documentId, content, article.title)
@@ -238,12 +239,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     )
   }
 
-  // Forward to POST handler
+  // Forward to POST handler (use same token POST expects)
+  const expectedToken = process.env.CRON_SECRET ?? process.env.ADMIN_PASSWORD
   const newRequest = new Request(request.url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.ADMIN_PASSWORD}`,
+      'Authorization': `Bearer ${expectedToken}`,
     },
   })
 
