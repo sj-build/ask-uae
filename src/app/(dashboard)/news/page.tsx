@@ -30,7 +30,7 @@ const NEWS_CATEGORIES: readonly NewsCategory[] = [
     labelKo: 'UAE 현지',
     labelEn: 'UAE Local',
     keywords: [],
-    majorMediaOnly: true, // Filter by publisher (major EN + UAE media)
+    majorMediaOnly: true, // English media only
   },
   {
     id: 'uae-korea',
@@ -44,7 +44,7 @@ const NEWS_CATEGORIES: readonly NewsCategory[] = [
     icon: '💰',
     labelKo: '투자 & 국부펀드',
     labelEn: 'Investment & SWF',
-    keywords: ['investment', 'Mubadala', 'ADIA', 'ADQ', 'IHC', 'MGX', 'Lunate', 'sovereign wealth', 'private equity', 'venture', 'fund', 'acquisition', 'stake', 'portfolio'],
+    keywords: ['investment', 'Mubadala', 'ADIA', 'ADQ', 'IHC', 'MGX', 'Lunate', 'sovereign wealth', 'private equity', 'venture', 'fund', 'acquisition', 'stake', 'portfolio', '투자', '국부펀드', '무바달라'],
   },
   {
     id: 'industry',
@@ -326,35 +326,51 @@ export default function NewsPage() {
     })
   }, [])
 
+  // English-only items (source === 'google')
+  const englishItems = useMemo(() =>
+    newsItems.filter(item => item.source === 'google'),
+  [newsItems])
+
   const filteredNews = useMemo(() => {
     const category = NEWS_CATEGORIES.find((c) => c.id === activeCategory)
     if (!category) return newsItems
 
-    // UAE Local: major media + NOT Korea-related
+    // UAE Local: English media only, NOT Korea-related
     if (category.majorMediaOnly) {
-      return newsItems.filter((item) => {
-        if (!isMajorMedia(item.publisher)) return false
+      return englishItems.filter((item) => {
         const text = `${item.title} ${item.tags.join(' ')} ${item.summary ?? ''}`
         return !isKoreaRelated(text)
       })
     }
 
-    // Others category - news that don't match any other category
+    // UAE-Korea: Korean news primarily + Korea-related English news
+    if (category.id === 'uae-korea') {
+      const koreaEn = englishItems.filter(item => {
+        const text = `${item.title} ${item.tags.join(' ')} ${item.summary ?? ''}`
+        return isKoreaRelated(text)
+      })
+      const koreaKo = newsItems.filter(item => item.source === 'naver')
+      // Korean first, then English Korea-related
+      return [...koreaKo, ...koreaEn]
+    }
+
+    // Others category - English items that don't match any other category
     if (category.isOthers) {
       const otherCategories = NEWS_CATEGORIES.filter(c => !c.isOthers && c.keywords.length > 0)
-      return newsItems.filter((item) => {
-        // Exclude major media (they have their own category)
-        if (isMajorMedia(item.publisher)) return false
-        // Exclude items that match any other category
+      return englishItems.filter((item) => {
+        const text = `${item.title} ${item.tags.join(' ')} ${item.summary ?? ''}`
+        if (isKoreaRelated(text)) return false
         return !otherCategories.some(cat => matchesCategory(item, cat))
       })
     }
 
-    // Keyword filter
-    if (category.keywords.length === 0) return newsItems
+    // Investment, Industry: English only + keyword filter
+    if (category.keywords.length > 0) {
+      return englishItems.filter((item) => matchesCategory(item, category))
+    }
 
-    return newsItems.filter((item) => matchesCategory(item, category))
-  }, [newsItems, activeCategory, matchesCategory])
+    return englishItems
+  }, [newsItems, englishItems, activeCategory, matchesCategory])
 
   const isHighlightTab = activeCategory === 'uae-korea' || activeCategory === 'uae-local'
 

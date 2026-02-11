@@ -34,10 +34,11 @@ function splitNews(items: readonly NewsItem[]): {
   const uaeLocal: NewsItem[] = []
 
   for (const item of items) {
-    if (isKoreaUaeNews(item)) {
+    // UAE-Korea: All Korean (Naver) articles + Korea-related English articles
+    if (item.source === 'naver' || isKoreaUaeNews(item)) {
       uaeKorea.push(item)
-    } else {
-      // Only show English-source news or Naver news that explicitly mention UAE
+    } else if (item.source === 'google') {
+      // UAE Local: English articles only
       uaeLocal.push(item)
     }
   }
