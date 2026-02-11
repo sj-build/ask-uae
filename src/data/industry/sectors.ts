@@ -11,6 +11,8 @@ import type { Sector } from '@/types/sector'
 // - 핀테크: TechSci Research UAE Fintech (2024)
 // - 뷰티: PS Market Research Beauty & Personal Care (2025)
 // - AI: Statista AI Market Forecast UAE, IMARC AI Market (2024)
+// - 제조: UAE MoIAT Operation 300bn, EGA Annual Report (2024), IMARC Steel
+// - 물류: DP World Annual Report, AD Ports Group, JAFZA (2024)
 
 // 시장 규모 순 정렬 (Market size descending)
 export const sectors: readonly Sector[] = [
@@ -63,6 +65,56 @@ export const sectors: readonly Sector[] = [
       { name: 'Dubai Tourism (DTCM)', owner: 'Dubai 정부', revenue: '방문객 18M+', marketCapUsd: '', valueChainPosition: '관광', note: 'K-Pop 팬 1.8M+ UAE/GCC' },
     ],
     insight: 'K-Entertainment 기회: K-Pop 공연 (Coca-Cola Arena), K-Drama IP 라이선싱, 뷰티+엔터 컬래버.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🏭 제조 & 산업
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    icon: '🏭',
+    name: '제조 · 산업 · 첨단제조',
+    size: '산업 GDP $57B (2024) → $82B (2031E)',
+    cagr: 'CAGR 8.8% (Operation 300bn)',
+    valueChain: [
+      { label: '원자재 (알루미늄/철강)' },
+      { label: '석유화학/소재' },
+      { label: '항공부품/첨단제조' },
+      { label: '식품가공/제약' },
+      { label: '산업자동화/Industry 4.0' },
+    ],
+    players: [
+      { name: 'EGA', owner: 'Mubadala+ICD', revenueUsd: '매출 $8.2B', marketCapUsd: '', valueChainPosition: '알루미늄', note: '세계 5위 알루미늄, 비석유 수출 1위' },
+      { name: 'EMSTEEL', owner: 'SENAAT/ADQ', revenue: '350만톤/년', marketCapUsd: '', valueChainPosition: '철강', note: 'UAE 최대 통합 철강, 그린스틸 추진' },
+      { name: 'Borouge', owner: 'ADNOC+Borealis', revenueUsd: '매출 $5.2B', marketCapUsd: '$20B', valueChainPosition: '석유화학', note: 'ADX 상장, 폴리올레핀 글로벌 선도' },
+      { name: 'Strata Manufacturing', owner: 'Mubadala', revenue: 'Boeing 787 부품', marketCapUsd: '', valueChainPosition: '항공부품', note: 'Airbus/Boeing 티어1 공급사' },
+      { name: 'SENAAT', owner: 'ADQ', revenueUsd: '매출 $4.5B', marketCapUsd: '', valueChainPosition: '산업 지주', note: 'DUCAB, National Cement 등 보유' },
+    ],
+    insight: '핵심: Operation 300bn (AED 300B 산업 GDP 목표 2031). 현재 AED 210B 달성 (70%). 한국 기업 삼성엔지니어링, 현대건설 등 UAE 산업 프로젝트 활발.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🚢 무역 & 물류
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    icon: '🚢',
+    name: '무역 · 물류 · 프리존',
+    size: '무역/물류 GDP $55B (2024) → $70B (2030E)',
+    cagr: 'CAGR 4.1%',
+    valueChain: [
+      { label: '항만/공항 인프라' },
+      { label: '해운/항공화물' },
+      { label: '프리존/보세구역' },
+      { label: '3PL/라스트마일' },
+      { label: '무역금융/통관' },
+    ],
+    players: [
+      { name: 'DP World', owner: 'Dubai 정부/ICD', revenueUsd: '매출 $18.9B', marketCapUsd: '$35B', valueChainPosition: '항만', note: '세계 3위 항만, 78개국 운영' },
+      { name: 'AD Ports (ADNOC Logistics)', owner: 'ADQ', revenueUsd: '매출 $7.5B', marketCapUsd: '$15B', valueChainPosition: '항만/물류', note: 'Khalifa Port, KIZAD 산업단지' },
+      { name: 'Emirates SkyCargo', owner: 'ICD/Dubai', revenue: '세계 1위 화물', marketCapUsd: '', valueChainPosition: '항공화물', note: '270+도시 네트워크' },
+      { name: 'JAFZA', owner: 'DP World', revenue: '9,000+기업', marketCapUsd: '', valueChainPosition: '프리존', note: 'Jebel Ali 프리존, UAE 비석유 무역 23%' },
+      { name: 'Aramex', owner: 'ADQ', revenueUsd: '매출 $1.6B', marketCapUsd: '$3.2B', valueChainPosition: '3PL/택배', note: 'MENA 최대 물류, ADX 상장' },
+    ],
+    insight: '한국 기업 UAE 진출 필수 인프라. JAFZA/KIZAD 프리존 = 100% 외국인 소유 + 법인세 면제. DP World 한국 파트너십 활발.',
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

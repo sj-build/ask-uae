@@ -11,6 +11,8 @@ import type { Sector } from '@/types/sector'
 // - Fintech: TechSci Research UAE Fintech (2024)
 // - Beauty: PS Market Research Beauty & Personal Care (2025)
 // - AI: Statista AI Market Forecast UAE, IMARC AI Market (2024)
+// - Manufacturing: UAE MoIAT Operation 300bn, EGA Annual Report (2024), IMARC Steel
+// - Logistics: DP World Annual Report, AD Ports Group, JAFZA (2024)
 
 // Sorted by market size (descending)
 export const sectors: readonly Sector[] = [
@@ -63,6 +65,56 @@ export const sectors: readonly Sector[] = [
       { name: 'Dubai Tourism (DTCM)', owner: 'Dubai government', revenue: '18M+ visitors', marketCapUsd: '', valueChainPosition: 'Tourism', note: '1.8M+ K-Pop fans in UAE/GCC' },
     ],
     insight: 'K-Entertainment opportunity: K-Pop concerts (Coca-Cola Arena), K-Drama IP licensing, beauty + entertainment collaborations.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🏭 Manufacturing & Industry
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    icon: '🏭',
+    name: 'Manufacturing · Industry · Advanced Manufacturing',
+    size: 'Industrial GDP $57B (2024) → $82B (2031E)',
+    cagr: 'CAGR 8.8% (Operation 300bn)',
+    valueChain: [
+      { label: 'Raw materials (aluminum/steel)' },
+      { label: 'Petrochemicals/materials' },
+      { label: 'Aerospace parts/advanced manufacturing' },
+      { label: 'Food processing/pharma' },
+      { label: 'Industrial automation/Industry 4.0' },
+    ],
+    players: [
+      { name: 'EGA', owner: 'Mubadala+ICD', revenueUsd: 'Rev $8.2B', marketCapUsd: '', valueChainPosition: 'Aluminum', note: 'World #5 aluminum, largest non-oil export' },
+      { name: 'EMSTEEL', owner: 'SENAAT/ADQ', revenue: '3.5M tonnes/year', marketCapUsd: '', valueChainPosition: 'Steel', note: 'UAE largest integrated steel, green steel push' },
+      { name: 'Borouge', owner: 'ADNOC+Borealis', revenueUsd: 'Rev $5.2B', marketCapUsd: '$20B', valueChainPosition: 'Petrochemicals', note: 'ADX listed, global polyolefins leader' },
+      { name: 'Strata Manufacturing', owner: 'Mubadala', revenue: 'Boeing 787 parts', marketCapUsd: '', valueChainPosition: 'Aerospace parts', note: 'Airbus/Boeing Tier 1 supplier' },
+      { name: 'SENAAT', owner: 'ADQ', revenueUsd: 'Rev $4.5B', marketCapUsd: '', valueChainPosition: 'Industrial holding', note: 'Owns DUCAB, National Cement, etc.' },
+    ],
+    insight: 'Key: Operation 300bn (AED 300B industrial GDP target by 2031). Currently AED 210B achieved (70%). Korean firms Samsung Engineering, Hyundai actively involved in UAE industrial projects.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🚢 Trade & Logistics
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    icon: '🚢',
+    name: 'Trade · Logistics · Free Zones',
+    size: 'Trade/Logistics GDP $55B (2024) → $70B (2030E)',
+    cagr: 'CAGR 4.1%',
+    valueChain: [
+      { label: 'Port/airport infrastructure' },
+      { label: 'Shipping/air cargo' },
+      { label: 'Free zones/bonded areas' },
+      { label: '3PL/last mile' },
+      { label: 'Trade finance/customs' },
+    ],
+    players: [
+      { name: 'DP World', owner: 'Dubai government/ICD', revenueUsd: 'Rev $18.9B', marketCapUsd: '$35B', valueChainPosition: 'Ports', note: 'World #3 port operator, 78 countries' },
+      { name: 'AD Ports (ADNOC Logistics)', owner: 'ADQ', revenueUsd: 'Rev $7.5B', marketCapUsd: '$15B', valueChainPosition: 'Ports/logistics', note: 'Khalifa Port, KIZAD industrial zone' },
+      { name: 'Emirates SkyCargo', owner: 'ICD/Dubai', revenue: 'World #1 cargo airline', marketCapUsd: '', valueChainPosition: 'Air cargo', note: '270+ city network' },
+      { name: 'JAFZA', owner: 'DP World', revenue: '9,000+ companies', marketCapUsd: '', valueChainPosition: 'Free zone', note: 'Jebel Ali Free Zone, 23% of UAE non-oil trade' },
+      { name: 'Aramex', owner: 'ADQ', revenueUsd: 'Rev $1.6B', marketCapUsd: '$3.2B', valueChainPosition: '3PL/courier', note: 'MENA largest logistics, ADX listed' },
+    ],
+    insight: 'Essential infrastructure for Korean companies entering UAE. JAFZA/KIZAD free zones = 100% foreign ownership + corporate tax exemption. DP World actively partnering with Korean firms.',
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
