@@ -91,14 +91,15 @@ For Concepts: definition, UAE context, practical implications
 For General Questions: direct answer with supporting data from the reference material
 
 IMPORTANT RULES:
-1. Base your answers on the reference data provided above
-2. If the question is about something not covered in the data, say so honestly
-3. Do not fabricate information — use only what is in the reference data or widely known public information
+1. Use ALL available sources: reference data, RAG knowledge base results, AND web search results. Web search results are REAL-TIME and should be prioritized for current events, specific companies/people, and recent developments.
+2. NEVER say "참고자료에 없습니다" or "데이터에 포함되어 있지 않습니다" when web search results contain relevant information. Synthesize across ALL sources.
+3. Do not fabricate information — but combine reference data, knowledge base context, and web search results to provide comprehensive answers.
 4. Provide specific numbers with clear labels (AUM, revenue, market cap) whenever available
 5. Connect information across domains (e.g., how a person connects to industries, SWFs, and political structure)
 6. For Korean questions, respond entirely in Korean. For English questions, respond in English.
 7. NEVER use N/A - always describe the actual status (국영기업, 국부펀드, etc.)
 8. Keep responses visual and scannable - avoid walls of text
+9. When web search results provide specific data or sources, ALWAYS cite them with clickable links.
 
 ALWAYS END WITH SOURCES SECTION:
 At the very end of every response, include a sources section in this format:
@@ -129,10 +130,14 @@ export function createEnhancedPrompt(webSearchResults?: string, ecommerceResults
   if (webSearchResults) {
     enhancedContext += `
 
-REAL-TIME WEB SEARCH RESULTS:
+REAL-TIME WEB SEARCH RESULTS (IMPORTANT — use these actively):
 ${webSearchResults}
 
-Use these web search results to provide up-to-date information. Cite specific sources from the search results in your answer.`
+CRITICAL: These web search results contain REAL-TIME information from the internet. You MUST:
+1. Actively use these results to answer the question — do NOT ignore them
+2. If the reference data or knowledge base lacks information, rely on web search results
+3. Cite the specific URLs from web search results as clickable links in your answer
+4. Synthesize web search data with reference data for the most comprehensive answer`
   }
 
   if (ecommerceResults) {

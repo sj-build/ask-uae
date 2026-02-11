@@ -155,13 +155,12 @@ export async function POST(request: Request): Promise<Response> {
 
     const client = getAnthropicClient()
 
-    // Determine if we need enhanced search (only on first query)
+    // Always search on first query; follow-ups use conversation context
     const isFirstQuery = conversationHistory.length === 0
-    const shouldWebSearch = isFirstQuery && needsWebSearch(query)
     const shouldEcommerceSearch = isFirstQuery && needsEcommerceSearch(query)
     const brandName = extractBrandName(query)
 
-    // Build enhanced context (parallel fetching) - only on first query
+    // Build enhanced context (parallel fetching)
     let webSearchResults = ''
     let ecommerceResults = ''
     let ragContext = ''
@@ -174,7 +173,6 @@ export async function POST(request: Request): Promise<Response> {
       searchPromises.push(
         (async () => {
           try {
-            // Try vector-based search if embeddings are configured
             if (isEmbeddingConfigured()) {
               const { embedding } = await generateEmbedding(query)
               const vectorResult = await searchRelevantSourcesVector(embedding, {
@@ -192,7 +190,6 @@ export async function POST(request: Request): Promise<Response> {
             console.warn('Vector RAG search failed, falling back to keyword:', e)
           }
 
-          // Fallback to keyword-based search (V2)
           const { sources, context } = await searchRelevantSourcesV2(query, 8)
           ragSources = sources
           ragContext = context
@@ -201,15 +198,14 @@ export async function POST(request: Request): Promise<Response> {
         })
       )
 
-      if (shouldWebSearch) {
-        searchPromises.push(
-          searchUAE(query, 5).then((results) => {
-            webSearchResults = formatGoogleResults(results)
-          }).catch(() => {
-            // Silently fail
-          })
-        )
-      }
+      // ALWAYS run web search — DB may not have enough coverage
+      searchPromises.push(
+        searchUAE(query, 5).then((results) => {
+          webSearchResults = formatGoogleResults(results)
+        }).catch(() => {
+          // Silently fail
+        })
+      )
 
       if (shouldEcommerceSearch) {
         searchPromises.push(
