@@ -129,10 +129,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const cleaned = filterNoise(allItems)
     const deduplicated = deduplicateNews(cleaned)
 
-    // Fetch OG images for articles (limit to top 15 for Vercel 55s budget)
-    const topArticles = deduplicated.slice(0, 15)
+    // Fetch OG images for top articles only (strict budget for 55s limit)
+    const topArticles = deduplicated.slice(0, 5)
     const enrichedTop = await enrichWithImages([...topArticles])
-    const enrichedAll = [...enrichedTop, ...deduplicated.slice(15)]
+    const enrichedAll = [...enrichedTop, ...deduplicated.slice(5)]
 
     const tagged = tagNewsBatch(enrichedAll, ALL_KEYWORDS)
 
@@ -167,18 +167,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       )
     }
 
-    // Also upsert to documents table for unified knowledge layer
-    const { upsertDocumentFromNews, processDocumentEmbeddings } = await import('@/lib/db')
-    const { isEmbeddingConfigured } = await import('@/lib/embeddings')
+    // Upsert to documents table (skip embeddings in sync — too slow for 55s)
+    const { upsertDocumentFromNews } = await import('@/lib/db')
     let documentsUpserted = 0
-    let embeddingsGenerated = 0
-
-    const shouldGenerateEmbeddings = isEmbeddingConfigured()
-    const embeddingCap = 10 // Cap embeddings to stay within 55s budget
 
     for (const article of articles) {
       try {
-        const documentId = await upsertDocumentFromNews({
+        await upsertDocumentFromNews({
           title: article.title,
           url: article.url,
           summary: article.summary ?? null,
@@ -188,30 +183,16 @@ export async function POST(request: Request): Promise<NextResponse> {
           category: article.category ?? null,
         })
         documentsUpserted++
-
-        // Generate embeddings if configured and document was created
-        if (shouldGenerateEmbeddings && documentId && article.summary && embeddingsGenerated < embeddingCap) {
-          try {
-            const content = [article.title, article.summary].filter(Boolean).join('\n\n')
-            await processDocumentEmbeddings(documentId, content, article.title)
-            embeddingsGenerated++
-          } catch (embError) {
-            console.warn('Embedding generation failed for:', article.url, embError)
-            // Continue - embedding failure shouldn't block sync
-          }
-        }
       } catch (e) {
-        // Continue on individual failures
         console.warn('Document upsert failed for:', article.url, e)
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Synced ${data?.length ?? 0} news articles to UAE Memory (${documentsUpserted} documents, ${embeddingsGenerated} embeddings)`,
+      message: `Synced ${data?.length ?? 0} news articles (${documentsUpserted} documents)`,
       synced: data?.length ?? 0,
       documents_synced: documentsUpserted,
-      embeddings_generated: embeddingsGenerated,
       total_crawled: allItems.length,
     })
   } catch (error) {
