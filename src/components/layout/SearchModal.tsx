@@ -105,12 +105,12 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     }
   }, [isLoading, streamingContent, loadingMessages.length])
 
-  // Auto-scroll to bottom when new messages arrive or streaming content updates
+  // Auto-scroll to bottom when new messages arrive, streaming, or loading starts
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, streamingContent])
+  }, [messages, streamingContent, isLoading])
 
   // Handle initial query from quick questions
   useEffect(() => {
