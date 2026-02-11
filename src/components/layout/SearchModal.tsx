@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft, ExternalLink, FileText, Newspaper } from 'lucide-react'
+import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft, ExternalLink, FileText, Newspaper, Copy, Check } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { useSearch, type SavedConversation } from '@/hooks/useSearch'
 import { CONVERSATION_LIMITS } from '@/types/search'
@@ -69,6 +69,21 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
   const hasExecutedInitialQuery = useRef(false)
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const loadingStartTime = useRef<number | null>(null)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  const handleCopy = useCallback(async (htmlContent: string, index: number) => {
+    // Strip HTML tags to get plain text for clipboard
+    const temp = document.createElement('div')
+    temp.innerHTML = htmlContent
+    const plainText = temp.textContent || temp.innerText || ''
+    try {
+      await navigator.clipboard.writeText(plainText)
+      setCopiedIndex(index)
+      setTimeout(() => setCopiedIndex(null), 2000)
+    } catch {
+      // Fallback: select and copy
+    }
+  }, [])
 
   const loadingMessages = locale === 'en' ? [
     { text: 'AI is analyzing dashboard data...', subtext: 'Just a moment 🔍' },
@@ -413,10 +428,29 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                         <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0 mt-1">
                           <Sparkles className="w-4 h-4 text-gold" />
                         </div>
-                        <div
-                          className="flex-1 px-4 py-3 rounded-2xl rounded-bl-md bg-bg3/80 border border-brd/40 search-content text-[13px] leading-[1.9] text-t2"
-                          dangerouslySetInnerHTML={{ __html: message.content }}
-                        />
+                        <div className="flex-1">
+                          <div
+                            className="px-4 py-3 rounded-2xl rounded-bl-md bg-bg3/80 border border-brd/40 search-content text-[13px] leading-[1.9] text-t2"
+                            dangerouslySetInnerHTML={{ __html: message.content }}
+                          />
+                          <button
+                            onClick={() => handleCopy(message.content, index)}
+                            className="mt-1.5 ml-1 flex items-center gap-1 text-[11px] text-t4 hover:text-gold transition-colors"
+                            title={locale === 'en' ? 'Copy answer' : '답변 복사'}
+                          >
+                            {copiedIndex === index ? (
+                              <>
+                                <Check className="w-3 h-3" />
+                                <span>{locale === 'en' ? 'Copied' : '복사됨'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>{locale === 'en' ? 'Copy' : '복사'}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

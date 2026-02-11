@@ -280,9 +280,8 @@ export async function POST(request: Request): Promise<Response> {
               }
             }
 
-            // Send done signal
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
-            controller.close()
+            // Save to UAE Memory with sources (before close to keep function alive)
+            await saveToUAEMemory(query, fullResponse, 'ko', ragSources)
 
             // Log successful question (non-blocking)
             const responseTimeMs = Date.now() - startTime
@@ -295,8 +294,9 @@ export async function POST(request: Request): Promise<Response> {
               // Ignore logging errors
             })
 
-            // Save to UAE Memory with sources
-            await saveToUAEMemory(query, fullResponse, 'ko', ragSources)
+            // Send done signal and close (after all async work is complete)
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
+            controller.close()
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Stream error'
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))

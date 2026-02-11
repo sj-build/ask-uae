@@ -212,6 +212,14 @@ export function useSearch() {
           }
           // If doneReceived is true, message was already saved — do nothing
         }
+
+        // Safety net: stream ended normally but done event was never received
+        // (SSE line split across chunks, Vercel early termination, etc.)
+        if (!doneReceived && accumulatedContent) {
+          const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
+          setMessages(prev => [...prev, assistantMessage])
+          setStreamingContent('')
+        }
       } else {
         // Handle non-streaming response (fallback)
         const data = await response.json()
