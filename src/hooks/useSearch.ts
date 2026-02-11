@@ -155,43 +155,51 @@ export function useSearch() {
         const decoder = new TextDecoder()
         let accumulatedContent = ''
         let doneReceived = false
+        let messageSaved = false
+        let buffer = '' // Buffer for partial SSE lines split across chunks
+
+        const processEvent = (event: StreamEvent) => {
+          if (event.type === 'metadata') {
+            if (event.turnCount !== undefined) {
+              setTurnCount(event.turnCount)
+            }
+            if (event.limitReached) {
+              setLimitReached(true)
+            }
+            if (event.sources && event.sources.length > 0) {
+              setSources(event.sources)
+            }
+          } else if (event.type === 'content' && event.text) {
+            accumulatedContent += event.text
+            setStreamingContent(accumulatedContent)
+          } else if (event.type === 'done') {
+            doneReceived = true
+            messageSaved = true
+            const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
+            setMessages(prev => [...prev, assistantMessage])
+            setStreamingContent('')
+          } else if (event.type === 'error') {
+            throw new Error(event.error || 'Stream error')
+          }
+        }
 
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split('\n')
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+
+            // Keep last (potentially incomplete) line in buffer
+            buffer = lines.pop() ?? ''
 
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 try {
                   const event: StreamEvent = JSON.parse(line.slice(6))
-
-                  if (event.type === 'metadata') {
-                    if (event.turnCount !== undefined) {
-                      setTurnCount(event.turnCount)
-                    }
-                    if (event.limitReached) {
-                      setLimitReached(true)
-                    }
-                    if (event.sources && event.sources.length > 0) {
-                      setSources(event.sources)
-                    }
-                  } else if (event.type === 'content' && event.text) {
-                    accumulatedContent += event.text
-                    setStreamingContent(accumulatedContent)
-                  } else if (event.type === 'done') {
-                    doneReceived = true
-                    const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
-                    setMessages(prev => [...prev, assistantMessage])
-                    setStreamingContent('')
-                  } else if (event.type === 'error') {
-                    throw new Error(event.error || 'Stream error')
-                  }
+                  processEvent(event)
                 } catch (parseError) {
-                  // Skip invalid JSON lines (but re-throw explicit stream errors)
                   if (parseError instanceof Error && parseError.message !== 'Stream error' && !parseError.message.startsWith('Stream')) {
                     continue
                   }
@@ -200,22 +208,30 @@ export function useSearch() {
               }
             }
           }
+
+          // Process any remaining buffered data after stream ends
+          if (buffer.startsWith('data: ')) {
+            try {
+              const event: StreamEvent = JSON.parse(buffer.slice(6))
+              processEvent(event)
+            } catch {
+              // Final buffer was incomplete — ignore
+            }
+          }
         } catch (streamError) {
           // Stream broke — save partial content if we have any
-          if (!doneReceived && accumulatedContent) {
+          if (!messageSaved && accumulatedContent) {
+            messageSaved = true
             const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
             setMessages(prev => [...prev, assistantMessage])
             setStreamingContent('')
-          } else if (!doneReceived && !accumulatedContent) {
-            // No response at all — re-throw to remove user message in outer catch
+          } else if (!messageSaved && !accumulatedContent) {
             throw streamError
           }
-          // If doneReceived is true, message was already saved — do nothing
         }
 
         // Safety net: stream ended normally but done event was never received
-        // (SSE line split across chunks, Vercel early termination, etc.)
-        if (!doneReceived && accumulatedContent) {
+        if (!messageSaved && accumulatedContent) {
           const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
           setMessages(prev => [...prev, assistantMessage])
           setStreamingContent('')

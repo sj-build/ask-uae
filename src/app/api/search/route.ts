@@ -280,23 +280,21 @@ export async function POST(request: Request): Promise<Response> {
               }
             }
 
-            // Save to UAE Memory with sources (before close to keep function alive)
-            await saveToUAEMemory(query, fullResponse, 'ko', ragSources)
-
-            // Log successful question (non-blocking)
-            const responseTimeMs = Date.now() - startTime
-            logQuestion({
-              query,
-              success: true,
-              responseTimeMs,
-              userAgent: request.headers.get('user-agent') || undefined,
-            }).catch(() => {
-              // Ignore logging errors
-            })
-
-            // Send done signal and close (after all async work is complete)
+            // Send done signal FIRST to ensure client receives complete response
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
             controller.close()
+
+            // Save to UAE Memory + log after stream is closed (non-blocking)
+            const responseTimeMs = Date.now() - startTime
+            await Promise.all([
+              saveToUAEMemory(query, fullResponse, 'ko', ragSources).catch(() => {}),
+              logQuestion({
+                query,
+                success: true,
+                responseTimeMs,
+                userAgent: request.headers.get('user-agent') || undefined,
+              }).catch(() => {}),
+            ])
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Stream error'
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
