@@ -462,8 +462,8 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   </div>
                 ))}
 
-                {/* Streaming content - show as it comes in */}
-                {isLoading && streamingContent && (
+                {/* Streaming content - show as it comes in (during search or continuation) */}
+                {(isLoading || isContinuing) && streamingContent && (
                   <div className="flex justify-start">
                     <div className="max-w-[90%] flex gap-3">
                       <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0 mt-1">
