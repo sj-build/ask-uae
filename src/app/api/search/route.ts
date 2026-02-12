@@ -248,7 +248,7 @@ export async function POST(request: Request): Promise<Response> {
     if (useStreaming) {
       const stream = await client.messages.stream({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
+        max_tokens: 16000,
         system: systemPrompt,
         messages: claudeMessages,
       })
@@ -287,7 +287,7 @@ export async function POST(request: Request): Promise<Response> {
             if (stopReason === 'max_tokens') {
               const elapsed = Date.now() - startTime
               // Only continue if we have enough time budget (< 40s elapsed)
-              if (elapsed < 40000) {
+              if (elapsed < 48000) {
                 const continuationMessages = [
                   ...claudeMessages,
                   { role: 'assistant' as const, content: fullResponse },
@@ -296,7 +296,7 @@ export async function POST(request: Request): Promise<Response> {
 
                 const continuationStream = await client.messages.stream({
                   model: 'claude-sonnet-4-20250514',
-                  max_tokens: 4096,
+                  max_tokens: 8192,
                   system: systemPrompt,
                   messages: continuationMessages,
                 })
@@ -349,7 +349,7 @@ export async function POST(request: Request): Promise<Response> {
     // Non-streaming response (fallback)
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
+      max_tokens: 16000,
       system: systemPrompt,
       messages: claudeMessages,
     })
@@ -443,5 +443,5 @@ function stripHtml(html: string): string {
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 2000)  // Limit context per message
+    .slice(0, 4000)  // Limit context per message
 }
