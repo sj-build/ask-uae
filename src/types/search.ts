@@ -14,6 +14,7 @@ export const SearchRequestSchema = z.object({
     content: z.string(),
   })).optional(),
   stream: z.boolean().optional(),
+  continuation: z.boolean().optional(),
 })
 
 export type SearchRequest = z.infer<typeof SearchRequestSchema>

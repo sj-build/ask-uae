@@ -48,6 +48,7 @@ interface StreamEvent {
   limitReached?: boolean
   sources?: SourceReference[]
   error?: string
+  truncated?: boolean
 }
 
 export function useSearch() {
@@ -57,6 +58,8 @@ export function useSearch() {
   const [limitReached, setLimitReached] = useState(false)
   const [turnCount, setTurnCount] = useState(0)
   const [sources, setSources] = useState<SourceReference[]>([])
+  const [truncated, setTruncated] = useState(false)
+  const [isContinuing, setIsContinuing] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([])
   const abortRef = useRef<AbortController | null>(null)
@@ -130,6 +133,7 @@ export function useSearch() {
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
     setStreamingContent('')
+    setTruncated(false)
 
     try {
       // Build messages for API (current messages + new user message)
@@ -177,6 +181,9 @@ export function useSearch() {
           } else if (event.type === 'done') {
             doneReceived = true
             messageSaved = true
+            if (event.truncated) {
+              setTruncated(true)
+            }
             const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
             setMessages(prev => [...prev, assistantMessage])
             setStreamingContent('')
@@ -221,9 +228,10 @@ export function useSearch() {
             }
           }
         } catch (streamError) {
-          // Stream broke — save partial content if we have any
+          // Stream broke — save partial content and mark as truncated
           if (!messageSaved && accumulatedContent) {
             messageSaved = true
+            setTruncated(true)
             const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
             setMessages(prev => [...prev, assistantMessage])
             setStreamingContent('')
@@ -232,8 +240,9 @@ export function useSearch() {
           }
         }
 
-        // Safety net: stream ended normally but done event was never received
+        // Safety net: stream ended normally but done event was never received (Vercel timeout)
         if (!messageSaved && accumulatedContent) {
+          setTruncated(true)
           const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
           setMessages(prev => [...prev, assistantMessage])
           setStreamingContent('')
@@ -280,12 +289,132 @@ export function useSearch() {
     }
   }, [messages, limitReached, turnCount])
 
+  const continueResponse = useCallback(async () => {
+    if (isContinuing || isLoading) return
+
+    // Get the last assistant message content
+    const lastAssistantIndex = messages.length - 1
+    const lastAssistant = messages[lastAssistantIndex]
+    if (!lastAssistant || lastAssistant.role !== 'assistant') {
+      return
+    }
+
+    const existingContent = lastAssistant.content
+
+    // Cancel any existing request
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    setIsContinuing(true)
+    setTruncated(false)
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: '이어서 계속 작성해주세요. 중단된 부분부터 이어서 써주세요.',
+          messages: messages, // includes the last assistant message
+          stream: true,
+          continuation: true,
+        }),
+        signal: controller.signal,
+      })
+
+      const contentType = response.headers.get('content-type')
+      if (!contentType?.includes('text/event-stream')) {
+        // Non-streaming fallback — nothing to do
+        setIsContinuing(false)
+        return
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        setIsContinuing(false)
+        return
+      }
+
+      // Only move content to streaming after request is established
+      setMessages(prev => prev.slice(0, -1))
+      setStreamingContent(existingContent)
+
+      const decoder = new TextDecoder()
+      let accumulatedContent = existingContent
+      let buffer = ''
+      let stillTruncated = false
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event: StreamEvent = JSON.parse(line.slice(6))
+              if (event.type === 'content' && event.text) {
+                accumulatedContent += event.text
+                setStreamingContent(accumulatedContent)
+              } else if (event.type === 'done') {
+                if (event.truncated) {
+                  stillTruncated = true
+                }
+              }
+            } catch {
+              continue
+            }
+          }
+        }
+      }
+
+      // Process remaining buffer
+      if (buffer.startsWith('data: ')) {
+        try {
+          const event: StreamEvent = JSON.parse(buffer.slice(6))
+          if (event.type === 'content' && event.text) {
+            accumulatedContent += event.text
+          } else if (event.type === 'done' && event.truncated) {
+            stillTruncated = true
+          }
+        } catch {
+          // incomplete buffer, mark as truncated
+          if (accumulatedContent.length > existingContent.length) {
+            stillTruncated = true
+          }
+        }
+      }
+
+      // Save combined content as assistant message
+      const combinedMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
+      setMessages(prev => [...prev, combinedMessage])
+      setStreamingContent('')
+
+      if (stillTruncated) {
+        setTruncated(true)
+      }
+    } catch (error) {
+      // Restore what we had
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: existingContent }])
+      setStreamingContent('')
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Continue response error:', error.message)
+      }
+    } finally {
+      setIsContinuing(false)
+    }
+  }, [messages, isContinuing, isLoading])
+
   const clearConversation = useCallback(() => {
     setMessages([])
     setStreamingContent('')
     setLimitReached(false)
     setTurnCount(0)
     setSources([])
+    setTruncated(false)
     setCurrentConversationId(null)
     conversationIdRef.current = null
   }, [])
@@ -323,8 +452,11 @@ export function useSearch() {
     limitReached,
     isNearLimit,
     sources,
+    truncated,
+    isContinuing,
     search,
     clearConversation,
+    continueResponse,
     // Conversation history
     savedConversations,
     currentConversationId,

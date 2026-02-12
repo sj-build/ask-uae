@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft, ExternalLink, FileText, Newspaper, Copy, Check } from 'lucide-react'
+import { X, Sparkles, Send, RotateCcw, AlertCircle, History, Trash2, MessageSquare, ChevronLeft, ExternalLink, FileText, Newspaper, Copy, Check, Loader2 } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { useSearch, type SavedConversation } from '@/hooks/useSearch'
 import { CONVERSATION_LIMITS } from '@/types/search'
@@ -46,7 +46,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { t, locale } = useLocale()
   const {
@@ -57,8 +57,11 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     limitReached,
     isNearLimit,
     sources,
+    truncated,
+    isContinuing,
     search,
     clearConversation,
+    continueResponse,
     savedConversations,
     currentConversationId,
     loadConversation,
@@ -177,7 +180,10 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     const query = inputRef.current?.value.trim()
     if (query && !limitReached) {
       search(query)
-      if (inputRef.current) inputRef.current.value = ''
+      if (inputRef.current) {
+        inputRef.current.value = ''
+        inputRef.current.style.height = 'auto'
+      }
     }
   }, [search, limitReached])
 
@@ -497,6 +503,34 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   </div>
                 )}
 
+                {/* Truncation indicator with continue button */}
+                {truncated && !isLoading && !isContinuing && (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <span className="text-[12px] text-amber-400">
+                        {locale === 'en' ? 'Response was truncated.' : '답변이 잘렸습니다.'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={continueResponse}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-[12px] font-medium hover:bg-amber-500/30 transition-colors whitespace-nowrap"
+                    >
+                      {locale === 'en' ? 'Continue' : '이어서 보기'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Continuation in progress */}
+                {isContinuing && (
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+                    <span className="text-[12px] text-amber-400">
+                      {locale === 'en' ? 'Continuing response...' : '이어서 작성 중...'}
+                    </span>
+                  </div>
+                )}
+
                 {/* Sources section - show when we have sources and not loading */}
                 {!isLoading && sources.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-brd/30">
@@ -594,16 +628,27 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                 ${isFocused ? 'opacity-100' : 'opacity-30'}
               `} />
 
-              <div className="relative flex items-center bg-bg2 rounded-2xl">
-                <input
+              <div className="relative flex items-end bg-bg2 rounded-2xl">
+                <textarea
                   ref={inputRef}
-                  type="text"
                   name="chat-query"
                   autoComplete="off"
+                  rows={1}
                   placeholder={limitReached ? '대화 제한에 도달했습니다' : hasMessages ? '후속 질문을 입력하세요...' : t.search.placeholder}
                   disabled={limitReached}
-                  className="flex-1 py-4 px-5 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-gold/50"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleSearch() }}
+                  className="flex-1 py-4 px-5 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-gold/50 resize-none overflow-hidden"
+                  style={{ maxHeight: '120px' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSearch()
+                    }
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement
+                    target.style.height = 'auto'
+                    target.style.height = `${Math.min(target.scrollHeight, 120)}px`
+                  }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                 />
@@ -611,7 +656,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   onClick={handleSearch}
                   disabled={limitReached || isLoading}
                   aria-label="전송"
-                  className="mr-2 p-3 rounded-xl bg-gradient-to-r from-gold to-gold3 text-bg disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg hover:shadow-gold/20 focus-visible:ring-2 focus-visible:ring-gold/50"
+                  className="mr-2 mb-2 p-3 rounded-xl bg-gradient-to-r from-gold to-gold3 text-bg disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg hover:shadow-gold/20 focus-visible:ring-2 focus-visible:ring-gold/50"
                 >
                   <Send className="w-5 h-5" />
                 </button>

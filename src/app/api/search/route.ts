@@ -128,6 +128,63 @@ export async function POST(request: Request): Promise<Response> {
     query = parseResult.data.query
     const conversationHistory = parseResult.data.messages || []
     const useStreaming = parseResult.data.stream ?? true // Default to streaming
+    const isContinuation = parseResult.data.continuation ?? false
+
+    // Handle continuation request — skip RAG/web search, just continue generating
+    if (isContinuation) {
+      const client = getAnthropicClient()
+      const claudeMessages = conversationHistory.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.role === 'assistant' ? stripHtml(m.content) : m.content,
+      }))
+      // Add continuation prompt as the current query
+      claudeMessages.push({
+        role: 'user' as const,
+        content: query,
+      })
+
+      const stream = await client.messages.stream({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8192,
+        system: '이전 답변이 잘렸습니다. 중단된 부분부터 자연스럽게 이어서 작성해주세요. 같은 HTML 형식을 유지하세요.',
+        messages: claudeMessages,
+      })
+
+      const encoder = new TextEncoder()
+      let stopReason = 'end_turn'
+
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const event of stream) {
+              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                const chunk = JSON.stringify({ type: 'content', text: event.delta.text })
+                controller.enqueue(encoder.encode(`data: ${chunk}\n\n`))
+              } else if (event.type === 'message_delta' && 'stop_reason' in event.delta) {
+                stopReason = (event.delta as { stop_reason: string }).stop_reason
+              }
+            }
+            const donePayload = stopReason === 'max_tokens'
+              ? { type: 'done', truncated: true }
+              : { type: 'done' }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(donePayload)}\n\n`))
+            controller.close()
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Stream error'
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
+            controller.close()
+          }
+        },
+      })
+
+      return new Response(readableStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    }
 
     // Calculate turn count (user messages = turns)
     const turnCount = conversationHistory.filter(m => m.role === 'user').length
@@ -283,39 +340,11 @@ export async function POST(request: Request): Promise<Response> {
               }
             }
 
-            // Auto-continue if response was cut off (max_tokens hit)
-            if (stopReason === 'max_tokens') {
-              const elapsed = Date.now() - startTime
-              // Only continue if we have enough time budget (< 40s elapsed)
-              if (elapsed < 48000) {
-                const continuationMessages = [
-                  ...claudeMessages,
-                  { role: 'assistant' as const, content: fullResponse },
-                  { role: 'user' as const, content: '이어서 계속 작성해주세요. 중단된 부분부터 이어서 써주세요.' },
-                ]
-
-                const continuationStream = await client.messages.stream({
-                  model: 'claude-sonnet-4-20250514',
-                  max_tokens: 8192,
-                  system: systemPrompt,
-                  messages: continuationMessages,
-                })
-
-                for await (const event of continuationStream) {
-                  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-                    fullResponse += event.delta.text
-                    const chunk = JSON.stringify({
-                      type: 'content',
-                      text: event.delta.text,
-                    })
-                    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`))
-                  }
-                }
-              }
-            }
-
-            // Send done signal FIRST to ensure client receives complete response
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
+            // Send done signal with truncated flag if max_tokens was hit
+            const donePayload = stopReason === 'max_tokens'
+              ? { type: 'done', truncated: true }
+              : { type: 'done' }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(donePayload)}\n\n`))
             controller.close()
 
             // Save to UAE Memory + log after stream is closed (non-blocking)
