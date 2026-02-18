@@ -59,8 +59,10 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
     sources,
     truncated,
     isContinuing,
+    error,
     search,
     clearConversation,
+    clearError,
     continueResponse,
     savedConversations,
     currentConversationId,
@@ -395,6 +397,24 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
 
           {/* Chat Area */}
           <div className="flex-1 overflow-y-auto rounded-2xl border border-brd/60 bg-gradient-to-b from-bg2/95 to-bg2/80">
+            {/* Error on first query (no messages yet) */}
+            {!hasMessages && !isLoading && error && (
+              <div className="mx-5 mt-5">
+                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-accent-red/10 border border-accent-red/30">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-accent-red flex-shrink-0" />
+                    <span className="text-[12px] text-accent-red">{error}</span>
+                  </div>
+                  <button
+                    onClick={clearError}
+                    className="p-1 rounded-lg text-accent-red/60 hover:text-accent-red hover:bg-accent-red/10 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Welcome screen - no messages and not loading */}
             {!hasMessages && !isLoading && (
               <div className="text-center py-20 px-5">
@@ -500,6 +520,22 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Error message */}
+                {error && !isLoading && (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-accent-red/10 border border-accent-red/30">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-accent-red flex-shrink-0" />
+                      <span className="text-[12px] text-accent-red">{error}</span>
+                    </div>
+                    <button
+                      onClick={clearError}
+                      className="p-1 rounded-lg text-accent-red/60 hover:text-accent-red hover:bg-accent-red/10 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 )}
 
@@ -634,6 +670,7 @@ export function SearchModal({ isOpen, onClose, initialQuery }: SearchModalProps)
                   name="chat-query"
                   autoComplete="off"
                   rows={1}
+                  maxLength={2000}
                   placeholder={limitReached ? '대화 제한에 도달했습니다' : hasMessages ? '후속 질문을 입력하세요...' : t.search.placeholder}
                   disabled={limitReached}
                   className="flex-1 py-4 px-5 bg-transparent text-t1 text-[15px] font-sans outline-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-gold/50 resize-none overflow-hidden"

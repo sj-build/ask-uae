@@ -119,8 +119,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const parseResult = SearchRequestSchema.safeParse(body)
     if (!parseResult.success) {
+      const issues = parseResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
+      console.error('[Search] Validation failed:', issues)
       return NextResponse.json(
-        { success: false, error: '유효하지 않은 검색어입니다.' },
+        { success: false, error: `유효하지 않은 검색어입니다. (${issues[0]})` },
         { status: 400 }
       )
     }

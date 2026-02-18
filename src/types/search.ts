@@ -6,13 +6,30 @@ export interface ChatMessage {
   readonly content: string
 }
 
+// Message schema — tolerant of old localStorage data
+const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.coerce.string(),
+}).passthrough()
+
 // Request schema - supports both single query and conversation
+// Pre-filter: drop messages with missing role/content before validation
 export const SearchRequestSchema = z.object({
-  query: z.string().min(1).max(500),
-  messages: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string(),
-  })).optional(),
+  query: z.string().min(1).max(2000),
+  messages: z.preprocess(
+    (val) => {
+      if (!Array.isArray(val)) return []
+      return val.filter((m): m is Record<string, unknown> =>
+        m != null &&
+        typeof m === 'object' &&
+        'role' in m &&
+        'content' in m &&
+        (m.role === 'user' || m.role === 'assistant') &&
+        m.content != null
+      )
+    },
+    z.array(MessageSchema),
+  ).optional().default([]),
   stream: z.boolean().optional(),
   continuation: z.boolean().optional(),
 })

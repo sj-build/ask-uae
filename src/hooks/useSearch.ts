@@ -60,6 +60,7 @@ export function useSearch() {
   const [sources, setSources] = useState<SourceReference[]>([])
   const [truncated, setTruncated] = useState(false)
   const [isContinuing, setIsContinuing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([])
   const abortRef = useRef<AbortController | null>(null)
@@ -134,6 +135,7 @@ export function useSearch() {
     setIsLoading(true)
     setStreamingContent('')
     setTruncated(false)
+    setError(null)
 
     try {
       // Build messages for API (current messages + new user message)
@@ -149,6 +151,12 @@ export function useSearch() {
         }),
         signal: controller.signal,
       })
+
+      // Handle non-OK responses before processing
+      if (!response.ok && !response.headers.get('content-type')?.includes('text/event-stream')) {
+        const data = await response.json().catch(() => ({ error: `서버 오류 (${response.status})` }))
+        throw new Error(data.error || `요청 실패 (${response.status})`)
+      }
 
       // Check if streaming response
       const contentType = response.headers.get('content-type')
@@ -246,6 +254,10 @@ export function useSearch() {
           const assistantMessage: ChatMessage = { role: 'assistant', content: accumulatedContent }
           setMessages(prev => [...prev, assistantMessage])
           setStreamingContent('')
+        } else if (!messageSaved && !accumulatedContent) {
+          // Stream ended with zero content — likely a timeout or server error
+          setError('서버 응답 시간이 초과되었습니다. 다시 시도해주세요.')
+          setMessages(prev => prev.slice(0, -1))
         }
       } else {
         // Handle non-streaming response (fallback)
@@ -263,23 +275,25 @@ export function useSearch() {
             setSources(data.sources)
           }
         } else {
-          // Remove the user message on error
+          const errorMsg = data.error || '응답을 처리할 수 없습니다.'
+          setError(errorMsg)
           setMessages(prev => prev.slice(0, -1))
         }
       }
-    } catch (error) {
+    } catch (err) {
       // Only remove user message if no assistant response was added
       setMessages(prev => {
         const lastMsg = prev[prev.length - 1]
-        // If last message is the user's question (no response yet), remove it
         if (lastMsg?.role === 'user') return prev.slice(0, -1)
-        // Otherwise an assistant response exists — keep everything
         return prev
       })
       setStreamingContent('')
 
-      if (error instanceof Error && error.name !== 'AbortError') {
-        console.error('Search error:', error.message)
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User cancelled — no error to show
+      } else {
+        const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+        setError(errorMsg)
       }
     } finally {
       // Only the latest search can clear loading state (prevents abort race condition)
@@ -415,6 +429,7 @@ export function useSearch() {
     setTurnCount(0)
     setSources([])
     setTruncated(false)
+    setError(null)
     setCurrentConversationId(null)
     conversationIdRef.current = null
   }, [])
@@ -444,6 +459,8 @@ export function useSearch() {
 
   const isNearLimit = turnCount >= CONVERSATION_LIMITS.WARNING_TURNS
 
+  const clearError = useCallback(() => setError(null), [])
+
   return {
     isLoading,
     messages,
@@ -454,8 +471,10 @@ export function useSearch() {
     sources,
     truncated,
     isContinuing,
+    error,
     search,
     clearConversation,
+    clearError,
     continueResponse,
     // Conversation history
     savedConversations,
