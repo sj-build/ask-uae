@@ -2,6 +2,7 @@
  * Telegram Message Handler
  *
  * Uses direct Anthropic API call (avoids HTTP self-call timeout on Vercel)
+ * Post-response: conversation logging, insight extraction, URL clip saving
  */
 
 import { sendMessage, sendTypingAction } from './client'
@@ -14,7 +15,15 @@ import {
   isChatAllowed,
 } from './session'
 import { getAnthropicClient } from '@/lib/anthropic'
-import type { TelegramMessage, TelegramSession } from './types'
+import {
+  extractAllUrls,
+  extractUserNote,
+  fetchPageContent,
+  processAndSaveClip,
+} from './content-fetcher'
+import { logConversation } from './conversation-logger'
+import { extractInsightsFromTelegram } from './insight-extractor'
+import type { TelegramMessage, TelegramSession, PageContent } from './types'
 
 const TELEGRAM_SYSTEM_PROMPT = `You are the All About UAE AI assistant on Telegram.
 
@@ -137,24 +146,34 @@ function getResponses(session: TelegramSession): (typeof RESPONSES)['ko'] {
  */
 async function callAnthropicDirect(
   query: string,
-  history: TelegramSession['message_history']
+  history: TelegramSession['message_history'],
+  urlContext?: string
 ): Promise<string> {
   const client = getAnthropicClient()
+
+  // Build user message with optional URL context
+  let userContent = query
+  if (urlContext) {
+    userContent = `${query}\n\n<url_context>\n${urlContext}\n</url_context>`
+  }
 
   const claudeMessages = [
     ...history.map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
-    { role: 'user' as const, content: query },
+    { role: 'user' as const, content: userContent },
   ]
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: TELEGRAM_SYSTEM_PROMPT,
-    messages: claudeMessages,
-  })
+  const message = await client.messages.create(
+    {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: TELEGRAM_SYSTEM_PROMPT,
+      messages: claudeMessages,
+    },
+    { signal: AbortSignal.timeout(25000) }
+  )
 
   const text = message.content.reduce<string>((acc, block) => {
     if (block.type === 'text') {
@@ -236,14 +255,43 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
     // Send typing indicator
     await sendTypingAction(chatId)
 
+    // Detect URLs in message
+    const urls = extractAllUrls(text)
+    const hasUrls = urls.length > 0
+
+    // Fetch URL content in parallel (if any) — limit to 3 URLs
+    let urlContext = ''
+    const fetchedContents: Map<string, PageContent> = new Map()
+    if (hasUrls) {
+      const urlsToFetch = urls.slice(0, 3)
+      const results = await Promise.allSettled(
+        urlsToFetch.map(async (url) => {
+          const content = await fetchPageContent(url)
+          return { url, content }
+        })
+      )
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.content.text) {
+          const { url, content } = result.value
+          fetchedContents.set(url, content)
+          urlContext += `<article url="${url}">\nTitle: ${content.title}\n${content.text.slice(0, 3000)}\n</article>\n\n`
+        }
+      }
+    }
+
     // Save user message to history
     await updateSessionHistory(chatId, 'user', text)
 
     // Get updated session with history
     const updatedSession = await getOrCreateSession(chatId)
 
-    // Call Anthropic directly
-    const response = await callAnthropicDirect(text, updatedSession.message_history)
+    // Call Anthropic directly (with URL context if available)
+    const response = await callAnthropicDirect(
+      text,
+      updatedSession.message_history,
+      urlContext || undefined
+    )
 
     // Save assistant response to history
     await updateSessionHistory(chatId, 'assistant', response)
@@ -252,6 +300,34 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
     await sendMessage(chatId, response, {
       reply_to_message_id: message.message_id,
     })
+
+    // Post-response tasks (parallel, non-blocking for Telegram response)
+    const postTasks: Promise<unknown>[] = [
+      logConversation(chatId, message.message_id, text, response, hasUrls),
+      extractInsightsFromTelegram(text, response),
+    ]
+
+    if (hasUrls) {
+      const userNote = extractUserNote(text, urls)
+      for (const url of urls.slice(0, 3)) {
+        postTasks.push(
+          processAndSaveClip(chatId, url, userNote || null, fetchedContents.get(url))
+        )
+      }
+    }
+
+    const postResults = await Promise.allSettled(postTasks)
+
+    // Send save confirmation if URLs were processed
+    if (hasUrls) {
+      const clipResults = postResults.slice(2)
+      const savedCount = clipResults.filter(
+        (r) => r.status === 'fulfilled' && r.value !== null
+      ).length
+      if (savedCount > 0) {
+        await sendMessage(chatId, `💾 ${savedCount}개 URL이 저장되었습니다.`)
+      }
+    }
   } catch (error) {
     console.error('Telegram handler error:', error)
     await sendMessage(chatId, responses.error)
@@ -293,14 +369,19 @@ async function handleCommand(
       await sendMessage(chatId, RESPONSES.en.langSet)
       break
 
-    default:
-      // Unknown command - treat as question
+    default: {
+      // Unknown command - strip slash prefix and treat as question
+      const questionText = command.replace(/^\/\w+\s*/, '').trim()
+      if (!questionText) {
+        await sendMessage(chatId, responses.help)
+        return
+      }
       await handleMessage({
-        ...({} as TelegramMessage),
         message_id: 0,
         chat: { id: parseInt(chatId, 10), type: 'private' },
         date: Date.now() / 1000,
-        text: command,
-      })
+        text: questionText,
+      } as TelegramMessage)
+    }
   }
 }

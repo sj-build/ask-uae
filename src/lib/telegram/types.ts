@@ -95,3 +95,24 @@ export interface TelegramKeyboardButton {
 export interface TelegramReplyKeyboardRemove {
   remove_keyboard: true
 }
+
+// =============================================================================
+// Content Fetcher Types
+// =============================================================================
+
+export interface PageContent {
+  title: string
+  text: string
+  ogImage: string | null
+  authorHandle: string | null
+}
+
+export interface AiClipResult {
+  summary: string
+  sectors: string[]
+  tags: string[]
+  importance: number
+  investment_implication: string | null
+}
+
+export type SourceType = 'x' | 'youtube' | 'thread' | 'linkedin' | 'web'

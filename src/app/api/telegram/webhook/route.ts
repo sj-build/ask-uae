@@ -5,6 +5,21 @@ import { handleMessage, type TelegramUpdate } from '@/lib/telegram'
 // Allow up to 55 seconds for Anthropic API calls (Telegram timeout is 60s)
 export const maxDuration = 55
 
+// In-memory dedup for Telegram retries (update_id → timestamp)
+const processedUpdates = new Map<number, number>()
+const DEDUP_TTL_MS = 2 * 60 * 1000 // 2 minutes
+
+function isDuplicate(updateId: number): boolean {
+  const now = Date.now()
+  // Cleanup expired entries
+  for (const [id, ts] of processedUpdates) {
+    if (now - ts > DEDUP_TTL_MS) processedUpdates.delete(id)
+  }
+  if (processedUpdates.has(updateId)) return true
+  processedUpdates.set(updateId, now)
+  return false
+}
+
 // Telegram Update schema validation
 const TelegramUpdateSchema = z.object({
   update_id: z.number(),
@@ -97,6 +112,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const update = parseResult.data as TelegramUpdate
+
+    // Dedup: skip if this update_id was already processed (Telegram retries on timeout)
+    if (isDuplicate(update.update_id)) {
+      return NextResponse.json({ ok: true })
+    }
 
     // Process message (must await in serverless environment)
     if (update.message) {
