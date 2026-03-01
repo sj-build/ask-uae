@@ -12,6 +12,11 @@ export interface Translations {
     readonly legal: string
     readonly news: string
     readonly search: string
+    readonly crisisMap: string
+    readonly hormuzMonitor: string
+    readonly warRoom: string
+    readonly marketImpact: string
+    readonly hormuzCrisis: string
   }
   readonly header: {
     readonly title: string
@@ -182,6 +187,32 @@ export interface Translations {
       readonly filteredFrom: string
       readonly total: string
       readonly noNews: string
+    }
+    readonly hormuz: {
+      readonly title: string
+      readonly subtitle: string
+      readonly traffic: string
+      readonly oilPrices: string
+      readonly alerts: string
+      readonly shipping: string
+      readonly threatLevel: string
+    }
+    readonly warRoom: {
+      readonly title: string
+      readonly subtitle: string
+      readonly allCategories: string
+      readonly criticalOnly: string
+      readonly verifiedOnly: string
+    }
+    readonly marketImpact: {
+      readonly title: string
+      readonly subtitle: string
+      readonly scenarios: string
+      readonly karaFund: string
+    }
+    readonly crisisMap: {
+      readonly title: string
+      readonly subtitle: string
     }
   }
 }

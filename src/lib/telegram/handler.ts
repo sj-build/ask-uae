@@ -24,6 +24,14 @@ import {
 import { logConversation } from './conversation-logger'
 import { extractInsightsFromTelegram } from './insight-extractor'
 import type { TelegramMessage, TelegramSession, PageContent } from './types'
+import {
+  getHormuzDashboardData,
+  getLatestOilPrices,
+  getTrafficStats,
+  getHormuzAlerts,
+  getWarNews,
+} from '@/lib/hormuz/queries'
+import { getThreatLabel } from '@/lib/hormuz/threat-level'
 
 const TELEGRAM_SYSTEM_PROMPT = `You are the All About UAE AI assistant on Telegram.
 
@@ -64,6 +72,16 @@ const COMMANDS = {
   LANG_EN: '/en',
 } as const
 
+const HORMUZ_COMMANDS = {
+  STATUS: '/status',
+  OIL: '/oil',
+  TRAFFIC: '/traffic',
+  ALERTS: '/alerts',
+  NEWS: '/news',
+  MUTE: '/mute',
+  UNMUTE: '/unmute',
+} as const
+
 // Response templates
 const RESPONSES = {
   ko: {
@@ -76,6 +94,7 @@ UAE에 대해 무엇이든 물어보세요!
 /ko - 한국어 응답
 /en - English response
 /help - 도움말
+/status - 🔴 호르무즈 위기
 
 <i>예: "UAE 법인세율은?", "두바이와 아부다비 차이점"</i>`,
     help: `<b>UAE 101 봇 사용법</b>
@@ -91,7 +110,16 @@ UAE에 대해 무엇이든 물어보세요!
 <b>명령어:</b>
 /clear - 대화 기록 삭제
 /ko - 한국어로 답변
-/en - 영어로 답변`,
+/en - 영어로 답변
+
+<b>🔴 호르무즈 위기:</b>
+/status - 위기 종합 현황
+/oil - 유가 정보
+/traffic - 선박 통행 현황
+/alerts - 해양 경보
+/news - 최신 전쟁 뉴스
+/mute - 위기 알림 끄기
+/unmute - 위기 알림 켜기`,
     cleared: '대화 기록이 초기화되었습니다. 새로운 질문을 해주세요!',
     langSet: '언어가 한국어로 설정되었습니다.',
     rateLimit: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
@@ -109,6 +137,7 @@ Ask me anything about the UAE!
 /ko - Korean response
 /en - English response
 /help - Help
+/status - 🔴 Hormuz Crisis
 
 <i>Examples: "What's the corporate tax rate?", "Difference between Dubai and Abu Dhabi"</i>`,
     help: `<b>UAE 101 Bot Help</b>
@@ -124,7 +153,16 @@ Ask any question about UAE and I'll provide information.
 <b>Commands:</b>
 /clear - Clear conversation history
 /ko - Respond in Korean
-/en - Respond in English`,
+/en - Respond in English
+
+<b>🔴 Hormuz Crisis:</b>
+/status - Crisis overview
+/oil - Oil prices
+/traffic - Vessel traffic
+/alerts - Maritime alerts
+/news - Latest war news
+/mute - Mute crisis alerts
+/unmute - Unmute crisis alerts`,
     cleared: 'Conversation cleared. Feel free to ask a new question!',
     langSet: 'Language set to English.',
     rateLimit: 'Too many requests. Please try again later.',
@@ -335,6 +373,236 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
 }
 
 /**
+ * Time ago formatter for Telegram messages
+ */
+function timeAgo(dateStr: string, lang: 'ko' | 'en'): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+  if (diff < 60) return lang === 'en' ? 'just now' : '방금'
+  if (diff < 3600) {
+    const m = Math.floor(diff / 60)
+    return lang === 'en' ? `${m}m ago` : `${m}분 전`
+  }
+  if (diff < 86400) {
+    const h = Math.floor(diff / 3600)
+    return lang === 'en' ? `${h}h ago` : `${h}시간 전`
+  }
+  const d = Math.floor(diff / 86400)
+  return lang === 'en' ? `${d}d ago` : `${d}일 전`
+}
+
+/**
+ * Handle Hormuz crisis commands
+ */
+async function handleHormuzCommand(
+  chatId: string,
+  command: string,
+  session: TelegramSession
+): Promise<void> {
+  const lang: 'ko' | 'en' = session.language === 'en' ? 'en' : 'ko'
+
+  try {
+    switch (command) {
+      case HORMUZ_COMMANDS.STATUS:
+        await handleHormuzStatus(chatId, lang)
+        break
+      case HORMUZ_COMMANDS.OIL:
+        await handleHormuzOil(chatId, lang)
+        break
+      case HORMUZ_COMMANDS.TRAFFIC:
+        await handleHormuzTraffic(chatId, lang)
+        break
+      case HORMUZ_COMMANDS.ALERTS:
+        await handleHormuzAlertsList(chatId, lang)
+        break
+      case HORMUZ_COMMANDS.NEWS:
+        await handleHormuzNewsList(chatId, lang)
+        break
+      case HORMUZ_COMMANDS.MUTE:
+        await handleHormuzMuteToggle(chatId, lang, true)
+        break
+      case HORMUZ_COMMANDS.UNMUTE:
+        await handleHormuzMuteToggle(chatId, lang, false)
+        break
+    }
+  } catch (error) {
+    console.error('Hormuz command error:', error)
+    await sendMessage(
+      chatId,
+      lang === 'en' ? '❌ Failed to fetch crisis data.' : '❌ 위기 데이터 조회에 실패했습니다.'
+    )
+  }
+}
+
+async function handleHormuzStatus(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const data = await getHormuzDashboardData()
+  const threat = data.threatLevel
+
+  const levelMap: Record<string, number> = { LOW: 1, ELEVATED: 2, HIGH: 3, CRITICAL: 4 }
+  const dots = Array.from({ length: 4 }, (_, i) =>
+    i < (levelMap[threat] ?? 0) ? '●' : '○'
+  ).join(' ')
+
+  const brent = data.oil.brent
+  const wti = data.oil.wti
+  const vesselCount = data.vessels.total
+  const alertCount = data.latestAlerts.length
+  const latestNews = data.latestNews[0]
+  const threatLabel = getThreatLabel(threat, lang)
+
+  const fmtPct = (pct: number | null | undefined) => {
+    if (pct == null) return ''
+    return ` (${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%)`
+  }
+
+  const lines = lang === 'en'
+    ? [
+        '🔴 <b>Hormuz Crisis Status</b>',
+        '',
+        `⚠️ Threat: <b>${threatLabel}</b> (${dots})`,
+        '',
+        '📊 <b>Key Indicators</b>',
+        `• 🚢 Vessels (24h): <code>${vesselCount}</code>${data.vessels.changePct != null ? fmtPct(data.vessels.changePct) : ''}`,
+        `• 🛢️ Brent: <code>$${brent?.price?.toFixed(2) ?? 'N/A'}</code>${fmtPct(brent?.change_pct)}`,
+        `• 🛢️ WTI: <code>$${wti?.price?.toFixed(2) ?? 'N/A'}</code>${fmtPct(wti?.change_pct)}`,
+        `• ⚠️ Alerts: <code>${alertCount}</code>`,
+        ...(latestNews ? ['', `📰 Latest: <i>${latestNews.title}</i>`] : []),
+        '',
+        '🔗 https://askuae.vercel.app/hormuz',
+      ]
+    : [
+        '🔴 <b>호르무즈 위기 현황</b>',
+        '',
+        `⚠️ 위협: <b>${threatLabel}</b> (${dots})`,
+        '',
+        '📊 <b>주요 지표</b>',
+        `• 🚢 선박 (24h): <code>${vesselCount}</code>${data.vessels.changePct != null ? fmtPct(data.vessels.changePct) : ''}`,
+        `• 🛢️ 브렌트: <code>$${brent?.price?.toFixed(2) ?? 'N/A'}</code>${fmtPct(brent?.change_pct)}`,
+        `• 🛢️ WTI: <code>$${wti?.price?.toFixed(2) ?? 'N/A'}</code>${fmtPct(wti?.change_pct)}`,
+        `• ⚠️ 경보: <code>${alertCount}</code>`,
+        ...(latestNews ? ['', `📰 최신: <i>${latestNews.title}</i>`] : []),
+        '',
+        '🔗 https://askuae.vercel.app/hormuz',
+      ]
+
+  await sendMessage(chatId, lines.join('\n'))
+}
+
+async function handleHormuzOil(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const prices = await getLatestOilPrices()
+  const brent = prices.brent
+  const wti = prices.wti
+
+  const fmtPrice = (p: typeof brent, name: string) => {
+    if (!p) return `<b>${name}</b>\n• ${lang === 'en' ? 'No data' : '데이터 없음'}`
+    const arrow = (p.change_pct ?? 0) >= 0 ? '▲' : '▼'
+    const parts = [
+      `<b>${name}</b>`,
+      `• ${lang === 'en' ? 'Price' : '가격'}: <code>$${p.price.toFixed(2)}</code>${p.change_pct != null ? ` ${arrow} ${Math.abs(p.change_pct).toFixed(1)}%` : ''}`,
+    ]
+    if (p.prev_close != null) parts.push(`• ${lang === 'en' ? 'Prev' : '전일'}: <code>$${p.prev_close.toFixed(2)}</code>`)
+    if (p.low_price != null && p.high_price != null) parts.push(`• ${lang === 'en' ? 'Range' : '범위'}: $${p.low_price.toFixed(2)} - $${p.high_price.toFixed(2)}`)
+    if (p.spike_flag) parts.push(`• ⚠️ ${lang === 'en' ? 'SPIKE DETECTED' : '급등 감지'}`)
+    return parts.join('\n')
+  }
+
+  const msg = [
+    lang === 'en' ? '🛢️ <b>Oil Prices</b>' : '🛢️ <b>유가 현황</b>',
+    '',
+    fmtPrice(brent, lang === 'en' ? 'Brent Crude' : '브렌트유'),
+    '',
+    fmtPrice(wti, 'WTI'),
+    '',
+    '🔗 https://askuae.vercel.app/market-impact',
+  ].join('\n')
+
+  await sendMessage(chatId, msg)
+}
+
+async function handleHormuzTraffic(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const stats = await getTrafficStats()
+
+  if (!stats) {
+    await sendMessage(chatId, lang === 'en' ? '🚢 No traffic data available.' : '🚢 통행 데이터가 없습니다.')
+    return
+  }
+
+  const msg = [
+    lang === 'en' ? '🚢 <b>Hormuz Vessel Traffic</b>' : '🚢 <b>호르무즈 선박 통행</b>',
+    '',
+    `• ${lang === 'en' ? 'Total (24h)' : '총 선박 (24h)'}: <code>${stats.total_vessels}</code>`,
+    `• ${lang === 'en' ? 'Tankers' : '유조선'}: <code>${stats.tanker_count}</code>`,
+    `• ${lang === 'en' ? 'Cargo' : '화물선'}: <code>${stats.cargo_count}</code>`,
+    `• LNG: <code>${stats.lng_count}</code>`,
+    `• ${lang === 'en' ? 'Stopped' : '정지'}: <code>${stats.stopped_count}</code>`,
+    `• ${lang === 'en' ? 'U-turns' : 'U턴'}: <code>${stats.u_turn_count}</code>`,
+    `• ${lang === 'en' ? 'Dark vessels' : '미식별'}: <code>${stats.dark_vessel_count}</code>`,
+    '',
+    '🔗 https://askuae.vercel.app/crisis-map',
+  ].join('\n')
+
+  await sendMessage(chatId, msg)
+}
+
+async function handleHormuzAlertsList(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const alerts = await getHormuzAlerts()
+
+  if (alerts.length === 0) {
+    await sendMessage(chatId, lang === 'en' ? '✅ No active maritime alerts.' : '✅ 활성 해양 경보가 없습니다.')
+    return
+  }
+
+  const emoji: Record<string, string> = { critical: '🔴', high: '🟠', medium: '🟡', low: '🟢' }
+  const items = alerts.slice(0, 5).map((a, i) => {
+    const e = emoji[a.threat_level ?? ''] ?? '⚪'
+    return `${i + 1}. ${e} <b>${a.title}</b>\n   ${a.source}${a.alert_id ? ` ${a.alert_id}` : ''} | ${timeAgo(a.published_at ?? a.created_at, lang)}`
+  }).join('\n\n')
+
+  const msg = [
+    lang === 'en' ? `⚠️ <b>Maritime Alerts (${alerts.length})</b>` : `⚠️ <b>해양 경보 (${alerts.length}건)</b>`,
+    '',
+    items,
+    '',
+    '🔗 https://askuae.vercel.app/hormuz',
+  ].join('\n')
+
+  await sendMessage(chatId, msg)
+}
+
+async function handleHormuzNewsList(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const news = await getWarNews({ limit: 5 })
+
+  if (news.length === 0) {
+    await sendMessage(chatId, lang === 'en' ? '📰 No recent war news.' : '📰 최근 전쟁 뉴스가 없습니다.')
+    return
+  }
+
+  const emoji: Record<string, string> = { critical: '🔴', high: '🟠', medium: '🟡', low: '🟢' }
+  const items = news.map((n, i) => {
+    const e = emoji[n.severity ?? ''] ?? '⚪'
+    return `${i + 1}. ${e} <b>${n.title}</b>\n   ${n.source_name} | ${timeAgo(n.published_at ?? n.created_at, lang)}`
+  }).join('\n\n')
+
+  const msg = [
+    lang === 'en' ? '📰 <b>Latest War News</b>' : '📰 <b>최신 전쟁 뉴스</b>',
+    '',
+    items,
+    '',
+    '🔗 https://askuae.vercel.app/war-room',
+  ].join('\n')
+
+  await sendMessage(chatId, msg)
+}
+
+async function handleHormuzMuteToggle(chatId: string, lang: 'ko' | 'en', mute: boolean): Promise<void> {
+  // TODO: Persist mute preference in a dedicated table for full mute support
+  const msg = mute
+    ? (lang === 'en' ? '🔇 Crisis alerts muted for this chat.\nUse /unmute to resume.' : '🔇 위기 알림이 꺼졌습니다.\n/unmute로 다시 켤 수 있습니다.')
+    : (lang === 'en' ? '🔔 Crisis alerts resumed.' : '🔔 위기 알림이 켜졌습니다.')
+
+  await sendMessage(chatId, msg)
+}
+
+/**
  * Handle bot commands
  */
 async function handleCommand(
@@ -367,6 +635,16 @@ async function handleCommand(
     case COMMANDS.LANG_EN:
       await setSessionLanguage(chatId, 'en')
       await sendMessage(chatId, RESPONSES.en.langSet)
+      break
+
+    case HORMUZ_COMMANDS.STATUS:
+    case HORMUZ_COMMANDS.OIL:
+    case HORMUZ_COMMANDS.TRAFFIC:
+    case HORMUZ_COMMANDS.ALERTS:
+    case HORMUZ_COMMANDS.NEWS:
+    case HORMUZ_COMMANDS.MUTE:
+    case HORMUZ_COMMANDS.UNMUTE:
+      await handleHormuzCommand(chatId, cmd, session)
       break
 
     default: {
