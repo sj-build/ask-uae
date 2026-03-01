@@ -87,7 +87,7 @@ export function HormuzCrisisBanner({ data }: HormuzCrisisBannerProps) {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: threatColor }} />
               <span className="text-[13px] font-bold tracking-tight" style={{ color: threatColor }}>
-                {locale === 'en' ? 'HORMUZ CRISIS ALERT' : '호르무즈 위기 경보'}
+                {locale === 'en' ? 'IRAN CRISIS ALERT' : '이란 위기 경보'}
               </span>
               <span
                 className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase"

@@ -202,7 +202,7 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
               style={{ backgroundColor: threatColor }}
             />
             <h2 className="text-[15px] font-bold text-t1 tracking-tight">
-              {locale === 'en' ? 'HORMUZ CRISIS MONITOR' : '호르무즈 위기 모니터'}
+              {locale === 'en' ? 'IRAN CRISIS MONITOR' : '이란 위기 모니터'}
             </h2>
             <div className="hidden sm:flex items-center gap-2 ml-2">
               <span
