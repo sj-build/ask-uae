@@ -9,6 +9,7 @@ import { getLatestVessels, getActiveMapEvents, getActiveAlerts } from '@/lib/hor
 import { MapControls } from '@/components/hormuz/MapControls'
 import { MapLegend } from '@/components/hormuz/MapLegend'
 import { MapSidebar } from '@/components/hormuz/MapSidebar'
+import MiddleEastConflictMap from '@/components/hormuz/MiddleEastConflictMap'
 import type { VesselPosition, MapEvent, MaritimeAlert, MapLayerConfig } from '@/types/hormuz'
 
 // Dynamic import — Leaflet MUST NOT run on server
@@ -40,7 +41,10 @@ export default function CrisisMapPage() {
   const { locale } = useLocale()
   const isKo = locale === 'ko'
 
-  // --- Data state ---
+  // --- View mode ---
+  const [viewMode, setViewMode] = useState<'tactical' | 'strategic'>('strategic')
+
+  // --- Data state (for tactical view) ---
   const [vessels, setVessels] = useState<VesselPosition[]>([])
   const [events, setEvents] = useState<MapEvent[]>([])
   const [alerts, setAlerts] = useState<MaritimeAlert[]>([])
@@ -129,7 +133,7 @@ export default function CrisisMapPage() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8">
       {/* Page header */}
       <div className="px-4 sm:px-6 lg:px-8 mb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🗺️</span>
             <div>
@@ -144,6 +148,32 @@ export default function CrisisMapPage() {
             </div>
           </div>
 
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-bg2/80 rounded-lg p-0.5 border border-brd/40">
+            <button
+              type="button"
+              onClick={() => setViewMode('strategic')}
+              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
+                viewMode === 'strategic'
+                  ? 'bg-gold/15 text-gold'
+                  : 'text-t4 hover:text-t2'
+              }`}
+            >
+              🌍 {isKo ? '전략 지도' : 'Strategic'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('tactical')}
+              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
+                viewMode === 'tactical'
+                  ? 'bg-gold/15 text-gold'
+                  : 'text-t4 hover:text-t2'
+              }`}
+            >
+              📡 {isKo ? '전술 지도' : 'Tactical'}
+            </button>
+          </div>
+
           {/* Alert banner if any critical alerts */}
           {alerts.some(a => a.threat_level === 'critical') && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-md">
@@ -156,59 +186,69 @@ export default function CrisisMapPage() {
         </div>
       </div>
 
-      {/* Map area with overlays */}
+      {/* Map area */}
       <div className="relative px-4 sm:px-6 lg:px-8">
-        {/* Error state */}
-        {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1001] bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-sm text-red-400">{error}</span>
-            <button
-              onClick={fetchData}
-              className="text-xs text-red-300 underline hover:text-red-200 ml-2"
-            >
-              {isKo ? '재시도' : 'Retry'}
-            </button>
+        {viewMode === 'strategic' ? (
+          /* Strategic SVG geopolitical map */
+          <div className="relative h-[calc(100vh-180px)] min-h-[500px] rounded-lg overflow-hidden border border-[#1a1b23] bg-[#0a0e1a]">
+            <MiddleEastConflictMap />
           </div>
-        )}
-
-        <div className="relative flex">
-          {/* Map container */}
-          <div className="flex-1 relative">
-            {isLoading ? (
-              <MapLoadingSkeleton />
-            ) : (
-              <CrisisMapClient
-                vessels={vessels}
-                events={events}
-                layers={layers}
-              />
+        ) : (
+          /* Tactical Leaflet map */
+          <>
+            {/* Error state */}
+            {error && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1001] bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <span className="text-sm text-red-400">{error}</span>
+                <button
+                  onClick={fetchData}
+                  className="text-xs text-red-300 underline hover:text-red-200 ml-2"
+                >
+                  {isKo ? '재시도' : 'Retry'}
+                </button>
+              </div>
             )}
 
-            {/* Map overlays */}
-            <MapControls
-              layers={layers}
-              onToggleLayer={handleToggleLayer}
-              isConnected={realtime.connected}
-              autoRefresh={autoRefresh}
-              onToggleAutoRefresh={() => setAutoRefresh(prev => !prev)}
-              vesselCount={vessels.length}
-              eventCount={events.length}
-            />
-            <MapLegend />
-          </div>
+            <div className="relative flex">
+              {/* Map container */}
+              <div className="flex-1 relative">
+                {isLoading ? (
+                  <MapLoadingSkeleton />
+                ) : (
+                  <CrisisMapClient
+                    vessels={vessels}
+                    events={events}
+                    layers={layers}
+                  />
+                )}
 
-          {/* Sidebar — desktop only (mobile uses absolute overlay from MapSidebar) */}
-          <div className="hidden lg:block w-[280px] shrink-0">
-            <div className="sticky top-0 h-[calc(100vh-200px)] min-h-[500px] bg-[#0c0d14] border border-[#1a1b23] border-l-0 rounded-r-lg overflow-hidden">
-              <MapSidebar
-                vessels={vessels}
-                events={events}
-                lastUpdate={realtime.lastUpdate}
-              />
+                {/* Map overlays */}
+                <MapControls
+                  layers={layers}
+                  onToggleLayer={handleToggleLayer}
+                  isConnected={realtime.connected}
+                  autoRefresh={autoRefresh}
+                  onToggleAutoRefresh={() => setAutoRefresh(prev => !prev)}
+                  vesselCount={vessels.length}
+                  eventCount={events.length}
+                />
+                <MapLegend />
+              </div>
+
+              {/* Sidebar — desktop only */}
+              <div className="hidden lg:block w-[280px] shrink-0">
+                <div className="sticky top-0 h-[calc(100vh-200px)] min-h-[500px] bg-[#0c0d14] border border-[#1a1b23] border-l-0 rounded-r-lg overflow-hidden">
+                  <MapSidebar
+                    vessels={vessels}
+                    events={events}
+                    lastUpdate={realtime.lastUpdate}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   )

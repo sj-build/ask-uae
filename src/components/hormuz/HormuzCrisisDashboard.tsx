@@ -308,6 +308,13 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
                   {locale === 'en' ? 'No critical news at this time' : '현재 주요 뉴스 없음'}
                 </p>
               )}
+              <Link
+                href="/war-room"
+                className="flex items-center gap-1 text-[11px] text-t4 hover:text-gold transition-colors mt-3 pt-2 border-t border-brd/30"
+              >
+                {locale === 'en' ? 'View all news' : '더 보기'}
+                <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             {/* Active Alerts */}

@@ -100,7 +100,23 @@ export default function HormuzMonitorPage() {
     )
   }
 
-  if (!dashboard) return null
+  if (!dashboard) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="text-4xl">⚓</div>
+        <p className="text-t4 text-sm">
+          {locale === 'en' ? 'No data available. Try refreshing.' : '데이터가 없습니다. 새로고침해 주세요.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg bg-bg3/80 border border-brd/60 text-[12px] font-semibold text-t3 hover:text-gold hover:border-gold/40 transition-colors cursor-pointer"
+        >
+          {locale === 'en' ? 'Refresh' : '새로고침'}
+        </button>
+      </div>
+    )
+  }
 
   const brentPrice = dashboard.oil.brent
   const wtiPrice = dashboard.oil.wti

@@ -50,12 +50,24 @@ export function NewsCard({ item, isNew }: NewsCardProps) {
               {styles.label}
             </span>
           </div>
-          <h3
-            className="text-[13px] font-semibold text-t1 leading-snug cursor-pointer hover:text-gold transition-colors flex-1"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {item.title}
-          </h3>
+          {item.url ? (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] font-semibold text-t1 leading-snug cursor-pointer hover:text-gold transition-colors flex-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {item.title} <span className="text-[10px] text-t4">↗</span>
+            </a>
+          ) : (
+            <h3
+              className="text-[13px] font-semibold text-t1 leading-snug cursor-pointer hover:text-gold transition-colors flex-1"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {item.title}
+            </h3>
+          )}
         </div>
 
         {/* Summary */}
