@@ -4,7 +4,6 @@ import Link from 'next/link'
 import {
   Ship,
   Fuel,
-  AlertTriangle,
   Shield,
   ArrowRight,
   Map,
@@ -12,6 +11,7 @@ import {
   Newspaper,
   TrendingUp,
   Radio,
+  Info,
 } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { useHormuzRealtime } from '@/hooks/useHormuzRealtime'
@@ -180,16 +180,9 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
     if (uniqueNewsIds.has(n.id)) return false
     uniqueNewsIds.add(n.id)
     return true
-  }).slice(0, 3)
+  }).slice(0, 5)
 
-  // Alerts: merge realtime
-  const allAlerts = [...realtime.newAlerts, ...data.latestAlerts]
-  const uniqueAlertIds = new Set<string>()
-  const topAlerts = allAlerts.filter(a => {
-    if (uniqueAlertIds.has(a.id)) return false
-    uniqueAlertIds.add(a.id)
-    return true
-  }).slice(0, 3)
+  // No longer using alerts — replaced with crisis impact reference
 
   return (
     <section className="mb-6 animate-fade-in">
@@ -233,11 +226,11 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <StatCard
               icon={<Ship className="w-4 h-4" />}
-              labelKo="선박 통과"
-              labelEn="Vessels"
-              value={String(data.vessels.total)}
-              subValue={locale === 'en' ? '/24h' : '/24시간'}
-              changePct={data.vessels.changePct}
+              labelKo="해협 통행"
+              labelEn="Strait Traffic"
+              value={data.vessels.changePct !== null ? `${data.vessels.changePct > 0 ? '+' : ''}${data.vessels.changePct}%` : '—'}
+              subValue={locale === 'en' ? `vs pre-crisis (${data.vessels.total} vessels)` : `vs 사태 전 (${data.vessels.total}척)`}
+              accentColor={data.vessels.changePct !== null && data.vessels.changePct < -20 ? '#ef4444' : data.vessels.changePct !== null && data.vessels.changePct > 0 ? '#22c55e' : undefined}
               locale={locale}
             />
             <StatCard
@@ -266,14 +259,47 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
             />
           </div>
 
-          {/* News + Alerts Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            {/* Latest War News */}
+          {/* Crisis Impact Reference */}
+          <div className="bg-bg3/80 border border-brd/60 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Info className="w-3.5 h-3.5 text-t4" />
+              <span className="text-[11px] font-semibold text-t3 uppercase tracking-wide">
+                {locale === 'en' ? 'Hormuz Strait — Key Facts' : '호르무즈 해협 — 핵심 지표'}
+              </span>
+              <span className="ml-auto text-[9px] text-t4 italic">EIA · JP Morgan · Baltic Exchange</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+              <div className="bg-bg2/60 rounded px-2.5 py-2">
+                <div className="text-[10px] text-t4 mb-0.5">{locale === 'en' ? 'Global Oil Share' : '글로벌 원유 비중'}</div>
+                <div className="font-bold text-accent-red">20% (20M bbl/d)</div>
+              </div>
+              <div className="bg-bg2/60 rounded px-2.5 py-2">
+                <div className="text-[10px] text-t4 mb-0.5">{locale === 'en' ? 'Global LNG Share' : '글로벌 LNG 비중'}</div>
+                <div className="font-bold text-accent-orange">20% (290M m³/d)</div>
+              </div>
+              <div className="bg-bg2/60 rounded px-2.5 py-2">
+                <div className="text-[10px] text-t4 mb-0.5">{locale === 'en' ? 'JPM Closure Est.' : 'JPM 봉쇄 추정'}</div>
+                <div className="font-bold text-accent-red">$120–130/bbl</div>
+              </div>
+              <div className="bg-bg2/60 rounded px-2.5 py-2">
+                <div className="text-[10px] text-t4 mb-0.5">{locale === 'en' ? 'VLCC Rate (MEG→CN)' : 'VLCC 운임 (MEG→CN)'}</div>
+                <div className="font-bold text-accent-orange">
+                  {(() => {
+                    const vlcc = data.shippingIndicators.find(i => i.indicator_type === 'vlcc_freight_rate')
+                    if (!vlcc) return '—'
+                    return vlcc.unit === 'WS' ? `WS ${vlcc.value}` : `$${vlcc.value.toLocaleString()}/day`
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+
+            {/* Latest War News — Full Width */}
             <div className="bg-bg3/80 border border-brd/60 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Newspaper className="w-4 h-4 text-t4" />
                 <span className="text-[12px] font-semibold text-t2 uppercase tracking-wide">
-                  {locale === 'en' ? 'Latest War News' : '최신 전쟁 뉴스'}
+                  {locale === 'en' ? 'Key Developments' : '주요 상황'}
                 </span>
                 <span className="ml-auto text-[10px] text-t4">
                   ({topNews.length})
@@ -287,17 +313,33 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
                       <li key={news.id} className="flex items-start gap-2">
                         <SeverityBadge severity={news.severity} locale={locale} />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] text-t2 leading-snug truncate">
-                            {news.title}
-                          </p>
-                          {categoryInfo && (
-                            <span
-                              className="text-[10px] mt-0.5 inline-block"
-                              style={{ color: categoryInfo.color }}
+                          {news.url ? (
+                            <a
+                              href={news.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[12px] text-t2 leading-snug hover:text-gold transition-colors line-clamp-2"
                             >
-                              {locale === 'en' ? categoryInfo.labelEn : categoryInfo.labelKo}
-                            </span>
+                              {news.title}
+                            </a>
+                          ) : (
+                            <p className="text-[12px] text-t2 leading-snug line-clamp-2">
+                              {news.title}
+                            </p>
                           )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {categoryInfo && (
+                              <span
+                                className="text-[10px]"
+                                style={{ color: categoryInfo.color }}
+                              >
+                                {locale === 'en' ? categoryInfo.labelEn : categoryInfo.labelKo}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-t4">
+                              {news.source_name}
+                            </span>
+                          </div>
                         </div>
                       </li>
                     )
@@ -316,57 +358,6 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-
-            {/* Active Alerts */}
-            <div className="bg-bg3/80 border border-brd/60 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-t4" />
-                <span className="text-[12px] font-semibold text-t2 uppercase tracking-wide">
-                  {locale === 'en' ? 'Active Alerts' : '활성 경보'}
-                </span>
-                <span className="ml-auto text-[10px] text-t4">
-                  ({topAlerts.length})
-                </span>
-              </div>
-              {topAlerts.length > 0 ? (
-                <ul className="space-y-2">
-                  {topAlerts.map((alert) => (
-                    <li key={alert.id} className="flex items-start gap-2">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                        style={{
-                          backgroundColor: alert.threat_level === 'critical'
-                            ? '#ef4444'
-                            : alert.threat_level === 'substantial'
-                              ? '#f97316'
-                              : '#eab308',
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] text-t2 leading-snug truncate">
-                          {alert.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-t4 uppercase">
-                            {alert.source}
-                          </span>
-                          {alert.alert_id && (
-                            <span className="text-[10px] text-t4">
-                              {alert.alert_id}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[12px] text-t4 italic">
-                  {locale === 'en' ? 'No active alerts' : '활성 경보 없음'}
-                </p>
-              )}
-            </div>
-          </div>
 
           {/* Quick Navigation */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">

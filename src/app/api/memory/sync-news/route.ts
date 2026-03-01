@@ -208,20 +208,25 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 }
 
-// GET for manual trigger (with password)
+// GET for Vercel cron (Authorization header) or manual trigger (?password=)
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url)
   const password = url.searchParams.get('password')
+  const authHeader = request.headers.get('authorization')
+  const expectedToken = process.env.CRON_SECRET ?? process.env.ADMIN_PASSWORD
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const isAuthorized =
+    (password && password === process.env.ADMIN_PASSWORD) ||
+    (authHeader && expectedToken && authHeader === `Bearer ${expectedToken}`)
+
+  if (!isAuthorized) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }
     )
   }
 
-  // Forward to POST handler (use same token POST expects)
-  const expectedToken = process.env.CRON_SECRET ?? process.env.ADMIN_PASSWORD
+  // Forward to POST handler
   const newRequest = new Request(request.url, {
     method: 'POST',
     headers: {

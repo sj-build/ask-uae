@@ -351,15 +351,13 @@ export async function getHormuzDashboardData(): Promise<HormuzDashboardData> {
     getTrafficHistory('hourly', 48),
   ])
 
-  // Compute change pct from traffic history
-  let changePct: number | null = null
-  if (trafficHistory.length >= 2) {
-    const recent = trafficHistory[trafficHistory.length - 1]
-    const prev = trafficHistory[Math.max(0, trafficHistory.length - 25)] // ~24h ago
-    if (prev.total_vessels > 0) {
-      changePct = ((recent.total_vessels - prev.total_vessels) / prev.total_vessels) * 100
-    }
-  }
+  // Compute change pct vs pre-crisis baseline
+  // Baseline: ~110 vessels/day through Hormuz (pre-crisis average)
+  const BASELINE_DAILY_VESSELS = 110
+  const currentTotal = trafficStats?.total_vessels ? Number(trafficStats.total_vessels) : 0
+  const changePct = currentTotal > 0
+    ? Math.round(((currentTotal - BASELINE_DAILY_VESSELS) / BASELINE_DAILY_VESSELS) * 100)
+    : null
 
   const threatLevel: CrisisThreatLevel = computeThreatLevel({
     trafficStats,

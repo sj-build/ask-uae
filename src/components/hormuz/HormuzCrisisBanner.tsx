@@ -111,12 +111,18 @@ export function HormuzCrisisBanner({ data }: HormuzCrisisBannerProps) {
           <div className="flex flex-wrap items-center gap-4 text-[12px]">
             <div className="flex items-center gap-1.5 text-t2">
               <Ship className="w-3.5 h-3.5 text-t4" />
-              <span className="font-semibold text-t1">{vessels.total}</span>
-              <span className="text-t4">{locale === 'en' ? 'vessels/24h' : '척/24h'}</span>
-              {vessels.changePct !== null && (
-                <span className={vessels.changePct < 0 ? 'text-accent-red' : 'text-accent-green'}>
-                  {vessels.changePct > 0 ? '▲' : '▼'} {Math.abs(vessels.changePct).toFixed(0)}%
-                </span>
+              {vessels.changePct !== null ? (
+                <>
+                  <span className={`font-semibold ${vessels.changePct < -20 ? 'text-accent-red' : vessels.changePct > 0 ? 'text-accent-green' : 'text-t1'}`}>
+                    {vessels.changePct > 0 ? '+' : ''}{vessels.changePct}%
+                  </span>
+                  <span className="text-t4">{locale === 'en' ? 'vs pre-crisis' : 'vs 사태 전'}</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-t1">{vessels.total}</span>
+                  <span className="text-t4">{locale === 'en' ? 'vessels/24h' : '척/24h'}</span>
+                </>
               )}
             </div>
 
