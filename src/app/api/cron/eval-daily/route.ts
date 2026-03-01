@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { runEval } from '@/lib/eval/runner'
+
+export const maxDuration = 55
 
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
@@ -14,22 +17,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://askuae.vercel.app'
-    const secret = process.env.CRON_SECRET || ''
-
-    const response = await fetch(`${baseUrl}/api/eval/run`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-cron-secret': secret,
-      },
-      body: JSON.stringify({ type: 'daily_rules' }),
-    })
-
-    const result = await response.json()
+    const result = await runEval({ run_type: 'daily_rules' })
 
     return NextResponse.json({
-      success: response.ok,
+      success: true,
       triggered: 'daily_rules',
       result,
     })

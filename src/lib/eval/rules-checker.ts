@@ -4,21 +4,8 @@
  * Checks claims against source registry for verification
  */
 
-import { createClient } from '@supabase/supabase-js'
-import type { SourceRegistry, ExtractedClaim, VerificationResult, Verdict, Severity } from './types'
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!url || !serviceKey) {
-    throw new Error('Supabase configuration missing')
-  }
-
-  return createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  })
-}
+import { getSupabaseAdmin } from '@/lib/supabase'
+import type { SourceRegistry, ExtractedClaim, Verdict, Severity } from './types'
 
 /**
  * Get active sources from registry

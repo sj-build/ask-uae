@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { getSupabaseAdmin } from '@/lib/supabase'
 import { applyEvalFix } from '@/lib/eval/fix-applier'
 import { logAdminAction } from '@/lib/question-logger'
 import type { EvalIssue } from '@/lib/eval/types'
 
 export const maxDuration = 55
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!url || !serviceKey) {
-    throw new Error('Supabase configuration missing')
-  }
-
-  return createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  })
-}
 
 const UpdateIssueSchema = z.object({
   id: z.string().uuid(),

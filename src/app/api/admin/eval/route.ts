@@ -1,18 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!url || !serviceKey) {
-    throw new Error('Supabase configuration missing')
-  }
-
-  return createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  })
-}
+import { getSupabaseAdmin } from '@/lib/supabase'
 
 /**
  * GET /api/admin/eval
@@ -23,7 +10,6 @@ export async function GET(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin()
 
-    // Fetch recent runs
     const { data: runs, error: runsError } = await supabase
       .from('eval_runs')
       .select('*')
@@ -34,7 +20,6 @@ export async function GET(): Promise<NextResponse> {
       throw new Error(`Failed to fetch runs: ${runsError.message}`)
     }
 
-    // Fetch recent issues
     const { data: issues, error: issuesError } = await supabase
       .from('eval_issues')
       .select('*')
