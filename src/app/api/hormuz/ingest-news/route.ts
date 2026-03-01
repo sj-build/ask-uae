@@ -131,9 +131,24 @@ async function fetchNewsAPI(): Promise<Omit<WarNewsItem, 'id' | 'created_at'>[]>
 }
 
 // --- RSS feed fetch ---
-const RSS_FEEDS: Array<{ url: string; name: string }> = [
-  { url: 'https://www.reuters.com/rssFeed/worldNews', name: 'Reuters' },
-  { url: 'https://gcaptain.com/feed/', name: 'gCaptain' },
+const RSS_FEEDS: Array<{ url: string; name: string; category?: string }> = [
+  // === Tier 1: Confirmed working RSS feeds ===
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera', category: 'mideast-news' },
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', name: 'BBC Middle East', category: 'mideast-news' },
+  { url: 'https://gcaptain.com/feed/', name: 'gCaptain', category: 'maritime' },
+  { url: 'https://theloadstar.com/feed/', name: 'The Loadstar', category: 'maritime' },
+  { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', name: 'The National (UAE)', category: 'uae-news' },
+  // === Tier 2: Google News proxies for sources without native RSS ===
+  { url: 'https://news.google.com/rss/search?q=site:gulfnews.com+Hormuz+OR+Iran+OR+UAE&hl=en-US&gl=US&ceid=US:en', name: 'Gulf News (via Google)', category: 'uae-news' },
+  { url: 'https://news.google.com/rss/search?q=site:khaleejtimes.com+Hormuz+OR+Iran+OR+Gulf&hl=en-US&gl=US&ceid=US:en', name: 'Khaleej Times (via Google)', category: 'uae-news' },
+  { url: 'https://news.google.com/rss/search?q=site:english.alarabiya.net+Iran+OR+Hormuz+OR+Gulf&hl=en-US&gl=US&ceid=US:en', name: 'Al Arabiya (via Google)', category: 'mideast-news' },
+  { url: 'https://news.google.com/rss/search?q=site:reuters.com+Hormuz+OR+Iran+war+OR+Persian+Gulf&hl=en-US&gl=US&ceid=US:en', name: 'Reuters (via Google)', category: 'wire' },
+  { url: 'https://news.google.com/rss/search?q=site:apnews.com+Iran+OR+Hormuz+OR+Middle+East+war&hl=en-US&gl=US&ceid=US:en', name: 'AP News (via Google)', category: 'wire' },
+  { url: 'https://news.google.com/rss/search?q=site:cnn.com+Iran+war+OR+Hormuz+OR+Persian+Gulf&hl=en-US&gl=US&ceid=US:en', name: 'CNN (via Google)', category: 'mideast-news' },
+  // === Tier 3: Topic-based Google News feeds ===
+  { url: 'https://news.google.com/rss/search?q=Strait+of+Hormuz+shipping&hl=en-US&gl=US&ceid=US:en', name: 'Google News: Hormuz Shipping', category: 'maritime' },
+  { url: 'https://news.google.com/rss/search?q=Iran+war+oil+price&hl=en-US&gl=US&ceid=US:en', name: 'Google News: Iran Oil', category: 'oil-energy' },
+  { url: 'https://news.google.com/rss/search?q=UAE+war+impact+OR+Dubai+security&hl=en-US&gl=US&ceid=US:en', name: 'Google News: UAE Impact', category: 'uae-news' },
 ]
 
 async function fetchRSSFeeds(): Promise<Omit<WarNewsItem, 'id' | 'created_at'>[]> {

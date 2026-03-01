@@ -32,6 +32,18 @@ import {
   getWarNews,
 } from '@/lib/hormuz/queries'
 import { getThreatLabel } from '@/lib/hormuz/threat-level'
+import {
+  getLatestScenarioState,
+  getScenarioHistory,
+  getRecentAnalysisLogs,
+} from '@/lib/hormuz/scenario-queries'
+import {
+  formatScenarioStatus,
+  formatVariablesStatus,
+  formatImpactAnalysis,
+} from '@/lib/hormuz/scenario-dispatcher'
+import { IMPACT_MATRIX, SCENARIO_LABELS } from '@/data/hormuz/scenario-config'
+import type { ScenarioId } from '@/types/scenario'
 
 const TELEGRAM_SYSTEM_PROMPT = `You are the All About UAE AI assistant on Telegram.
 
@@ -80,6 +92,16 @@ const HORMUZ_COMMANDS = {
   NEWS: '/news',
   MUTE: '/mute',
   UNMUTE: '/unmute',
+} as const
+
+const KARA_COMMANDS = {
+  SCENARIO: '/scenario',
+  VARIABLES: '/variables',
+  IMPACT: '/impact',
+  KARA: '/kara',
+  HISTORY: '/history',
+  FORECAST: '/forecast',
+  EXPLAIN: '/explain',
 } as const
 
 // Response templates
@@ -423,6 +445,28 @@ async function handleHormuzCommand(
       case HORMUZ_COMMANDS.UNMUTE:
         await handleHormuzMuteToggle(chatId, lang, false)
         break
+      // KARA Scenario commands
+      case KARA_COMMANDS.SCENARIO:
+        await handleKaraScenario(chatId, lang)
+        break
+      case KARA_COMMANDS.VARIABLES:
+        await handleKaraVariables(chatId, lang)
+        break
+      case KARA_COMMANDS.IMPACT:
+        await handleKaraImpact(chatId, lang)
+        break
+      case KARA_COMMANDS.KARA:
+        await handleKaraFund(chatId, lang)
+        break
+      case KARA_COMMANDS.HISTORY:
+        await handleKaraHistory(chatId, lang)
+        break
+      case KARA_COMMANDS.FORECAST:
+        await handleKaraForecast(chatId, lang)
+        break
+      case KARA_COMMANDS.EXPLAIN:
+        await handleKaraExplain(chatId, lang)
+        break
     }
   } catch (error) {
     console.error('Hormuz command error:', error)
@@ -602,6 +646,134 @@ async function handleHormuzMuteToggle(chatId: string, lang: 'ko' | 'en', mute: b
   await sendMessage(chatId, msg)
 }
 
+// ============================================================================
+// KARA Scenario Command Handlers
+// ============================================================================
+
+async function handleKaraScenario(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const state = await getLatestScenarioState()
+  if (!state) {
+    await sendMessage(chatId, lang === 'en' ? '🧠 No scenario data yet.' : '🧠 시나리오 데이터가 아직 없습니다.')
+    return
+  }
+  await sendMessage(chatId, formatScenarioStatus(state, lang))
+}
+
+async function handleKaraVariables(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const state = await getLatestScenarioState()
+  if (!state || !state.variables_snapshot) {
+    await sendMessage(chatId, lang === 'en' ? '📊 No variable data yet.' : '📊 변수 데이터가 아직 없습니다.')
+    return
+  }
+  await sendMessage(chatId, formatVariablesStatus(state.variables_snapshot as Record<string, string | number>, lang))
+}
+
+async function handleKaraImpact(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const state = await getLatestScenarioState()
+  if (!state) {
+    await sendMessage(chatId, lang === 'en' ? '💹 No scenario data yet.' : '💹 시나리오 데이터가 아직 없습니다.')
+    return
+  }
+  await sendMessage(chatId, formatImpactAnalysis(state, lang))
+}
+
+async function handleKaraFund(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const state = await getLatestScenarioState()
+  if (!state) {
+    await sendMessage(chatId, lang === 'en' ? '🏢 No scenario data yet.' : '🏢 시나리오 데이터가 아직 없습니다.')
+    return
+  }
+  const isKo = lang === 'ko'
+  const primary = state.primary_scenario as ScenarioId
+  const impact = IMPACT_MATRIX[primary]
+  if (!impact) {
+    await sendMessage(chatId, isKo ? '❌ 현재 시나리오의 KARA 데이터가 없습니다.' : '❌ No KARA data for current scenario.')
+    return
+  }
+  const label = isKo ? SCENARIO_LABELS[primary]?.ko : SCENARIO_LABELS[primary]?.en
+  const lines = [
+    isKo ? `🏢 <b>KARA Fund 현황 (시나리오 ${primary}: ${label})</b>` : `🏢 <b>KARA Fund Status (Scenario ${primary}: ${label})</b>`,
+    '',
+    `📅 LP 미팅: ${impact.kara_fund.lp_meeting}`,
+    `📈 테제: ${impact.kara_fund.thesis_strength}`,
+    `💼 딜 기회: ${impact.kara_fund.deal_opportunity}`,
+    '',
+    isKo ? '<b>액션 아이템</b>' : '<b>Action Items</b>',
+    ...impact.kara_fund.action_items.map((a: string) => `• ${a}`),
+  ]
+  await sendMessage(chatId, lines.join('\n'))
+}
+
+async function handleKaraHistory(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const history = await getScenarioHistory(5)
+  if (history.length === 0) {
+    await sendMessage(chatId, lang === 'en' ? '📜 No scenario history yet.' : '📜 시나리오 이력이 아직 없습니다.')
+    return
+  }
+  const isKo = lang === 'ko'
+  const lines = [isKo ? '📜 <b>시나리오 변화 이력 (최근 5건)</b>' : '📜 <b>Scenario History (Last 5)</b>', '']
+  for (const s of history) {
+    const time = new Date(s.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const label = isKo ? SCENARIO_LABELS[s.primary_scenario as ScenarioId]?.ko : SCENARIO_LABELS[s.primary_scenario as ScenarioId]?.en
+    lines.push(`<b>${time}</b> — ${s.primary_scenario} ${label} (A:${s.scenario_a_pct}% B:${s.scenario_b_pct}% C:${s.scenario_c_pct}% D:${s.scenario_d_pct}%)`)
+    if (s.transition_detected) lines.push(`  ⚡ ${isKo ? '전환' : 'Transition'}: ${s.transition_detected}`)
+    lines.push('')
+  }
+  await sendMessage(chatId, lines.join('\n'))
+}
+
+async function handleKaraForecast(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const state = await getLatestScenarioState()
+  if (!state) {
+    await sendMessage(chatId, lang === 'en' ? '🔮 No forecast data yet.' : '🔮 예측 데이터가 아직 없습니다.')
+    return
+  }
+  const isKo = lang === 'ko'
+  const primary = state.primary_scenario as ScenarioId
+  const impact = IMPACT_MATRIX[primary]
+  const label = isKo ? SCENARIO_LABELS[primary]?.ko : SCENARIO_LABELS[primary]?.en
+  const lines = [
+    isKo ? `🔮 <b>48시간 전망 (주 시나리오: ${primary} ${label})</b>` : `🔮 <b>48h Forecast (Primary: ${primary} ${label})</b>`,
+    '',
+    `🛢️ ${isKo ? '유가' : 'Oil'}: ${impact.oil.direction} ${impact.oil.range} (${impact.oil.timeline})`,
+    `📈 KOSPI: ${impact.kospi.direction} ${impact.kospi.magnitude}`,
+    `🌍 ${isKo ? '글로벌' : 'Global'}: ${impact.global_equity.direction} ${impact.global_equity.magnitude}`,
+    '',
+    `📝 ${impact.oil.reasoning}`,
+  ]
+  await sendMessage(chatId, lines.join('\n'))
+}
+
+async function handleKaraExplain(chatId: string, lang: 'ko' | 'en'): Promise<void> {
+  const logs = await getRecentAnalysisLogs(1)
+  if (logs.length === 0) {
+    await sendMessage(chatId, lang === 'en' ? '📝 No analysis logs yet.' : '📝 분석 이력이 아직 없습니다.')
+    return
+  }
+  const log = logs[0]
+  const isKo = lang === 'ko'
+  const time = new Date(log.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+  const lines = [
+    isKo ? `📝 <b>마지막 시나리오 분석</b>` : `📝 <b>Last Scenario Analysis</b>`,
+    `🕐 ${time} KST`,
+    '',
+    `${isKo ? '레벨' : 'Level'}: <code>${log.alert_level ?? 'N/A'}</code>`,
+    `${isKo ? '시나리오 변화' : 'Scenario changed'}: <code>${log.scenario_changed ? 'Yes' : 'No'}</code>`,
+    `${isKo ? '처리 시간' : 'Processing'}: <code>${log.processing_time_ms ?? 'N/A'}ms</code>`,
+    `${isKo ? '비용' : 'Cost'}: <code>$${Number(log.cost_usd ?? 0).toFixed(4)}</code>`,
+  ]
+  if (log.claude_response && typeof log.claude_response === 'object' && 'summary_ko' in log.claude_response) {
+    lines.push('', `📝 ${(log.claude_response as Record<string, string>).summary_ko}`)
+  }
+  if (log.claude_response && typeof log.claude_response === 'object' && 'scenario_update' in log.claude_response) {
+    const update = (log.claude_response as Record<string, Record<string, string>>).scenario_update
+    if (update?.reasoning_ko) {
+      lines.push('', `🔍 ${update.reasoning_ko}`)
+    }
+  }
+  await sendMessage(chatId, lines.join('\n'))
+}
+
 /**
  * Handle bot commands
  */
@@ -644,6 +816,16 @@ async function handleCommand(
     case HORMUZ_COMMANDS.NEWS:
     case HORMUZ_COMMANDS.MUTE:
     case HORMUZ_COMMANDS.UNMUTE:
+      await handleHormuzCommand(chatId, cmd, session)
+      break
+
+    case KARA_COMMANDS.SCENARIO:
+    case KARA_COMMANDS.VARIABLES:
+    case KARA_COMMANDS.IMPACT:
+    case KARA_COMMANDS.KARA:
+    case KARA_COMMANDS.HISTORY:
+    case KARA_COMMANDS.FORECAST:
+    case KARA_COMMANDS.EXPLAIN:
       await handleHormuzCommand(chatId, cmd, session)
       break
 
