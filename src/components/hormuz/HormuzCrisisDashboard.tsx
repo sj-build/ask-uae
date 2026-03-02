@@ -362,28 +362,28 @@ export function HormuzCrisisDashboard({ data }: HormuzCrisisDashboardProps) {
           {/* Quick Navigation */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <QuickNavLink
-              href="/hormuz"
+              href="/crisis-map"
               icon={<Map className="w-4 h-4" />}
               labelKo="위기 지도"
               labelEn="Crisis Map"
               locale={locale}
             />
             <QuickNavLink
-              href="/hormuz/monitor"
+              href="/hormuz"
               icon={<BarChart3 className="w-4 h-4" />}
               labelKo="풀 모니터"
               labelEn="Full Monitor"
               locale={locale}
             />
             <QuickNavLink
-              href="/hormuz/news"
+              href="/war-room"
               icon={<Newspaper className="w-4 h-4" />}
               labelKo="전쟁 상황실"
               labelEn="War Room"
               locale={locale}
             />
             <QuickNavLink
-              href="/hormuz/market"
+              href="/market-impact"
               icon={<TrendingUp className="w-4 h-4" />}
               labelKo="시장 영향"
               labelEn="Market Impact"

@@ -22,6 +22,7 @@ import {
   processAndSaveClip,
 } from './content-fetcher'
 import { logConversation } from './conversation-logger'
+import { isCrisisContent, saveCrisisToWarNewsFeed } from './crisis-detector'
 import { extractInsightsFromTelegram } from './insight-extractor'
 import type { TelegramMessage, TelegramSession, PageContent } from './types'
 import {
@@ -340,6 +341,10 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
       }
     }
 
+    // Detect crisis-related content (for saving to war_news_feed)
+    const combinedText = [text, urlContext].join(' ')
+    const crisisDetected = isCrisisContent(combinedText)
+
     // Save user message to history
     await updateSessionHistory(chatId, 'user', text)
 
@@ -347,11 +352,18 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
     const updatedSession = await getOrCreateSession(chatId)
 
     // Call Anthropic directly (with URL context if available)
-    const response = await callAnthropicDirect(
-      text,
-      updatedSession.message_history,
-      urlContext || undefined
-    )
+    let response: string
+    try {
+      response = await callAnthropicDirect(
+        text,
+        updatedSession.message_history,
+        urlContext || undefined
+      )
+    } catch (aiError) {
+      console.error('[handler] Claude API error:', aiError instanceof Error ? aiError.message : aiError)
+      await sendMessage(chatId, responses.error)
+      return
+    }
 
     // Save assistant response to history
     await updateSessionHistory(chatId, 'assistant', response)
@@ -367,6 +379,7 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
       extractInsightsFromTelegram(text, response),
     ]
 
+    const clipStartIdx = postTasks.length
     if (hasUrls) {
       const userNote = extractUserNote(text, urls)
       for (const url of urls.slice(0, 3)) {
@@ -375,12 +388,37 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
         )
       }
     }
+    const clipEndIdx = postTasks.length
+
+    // Save crisis-related content to war_news_feed
+    if (crisisDetected) {
+      const firstContent = fetchedContents.size > 0
+        ? Array.from(fetchedContents.values())[0]
+        : undefined
+      postTasks.push(
+        saveCrisisToWarNewsFeed({
+          text,
+          urls,
+          fetchedContent: firstContent,
+          chatId,
+          messageId: message.message_id,
+        })
+      )
+    }
+    const crisisTaskIdx = crisisDetected ? postTasks.length - 1 : -1
 
     const postResults = await Promise.allSettled(postTasks)
 
+    // Log post-task failures
+    for (const [i, result] of postResults.entries()) {
+      if (result.status === 'rejected') {
+        console.error(`[handler] Post-task ${i} failed:`, result.reason)
+      }
+    }
+
     // Send save confirmation if URLs were processed
     if (hasUrls) {
-      const clipResults = postResults.slice(2)
+      const clipResults = postResults.slice(clipStartIdx, clipEndIdx)
       const savedCount = clipResults.filter(
         (r) => r.status === 'fulfilled' && r.value !== null
       ).length
@@ -388,8 +426,20 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
         await sendMessage(chatId, `💾 ${savedCount}개 URL이 저장되었습니다.`)
       }
     }
+
+    // Send crisis intel confirmation
+    if (crisisDetected && crisisTaskIdx >= 0) {
+      const crisisResult = postResults[crisisTaskIdx]
+      if (crisisResult?.status === 'fulfilled' && crisisResult.value === true) {
+        await sendMessage(chatId, '🔴 위기 인텔 저장됨 — 시나리오 분석에 반영됩니다.')
+      }
+    }
   } catch (error) {
-    console.error('Telegram handler error:', error)
+    console.error('[handler] Telegram handler error:', {
+      chatId,
+      messageId: message.message_id,
+      error: error instanceof Error ? error.message : String(error),
+    })
     await sendMessage(chatId, responses.error)
   }
 }

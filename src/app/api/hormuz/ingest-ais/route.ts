@@ -238,33 +238,39 @@ export async function GET(request: Request) {
       v.heading !== null && v.heading >= 180 && v.heading < 360
     ).length
 
-    await upsertTrafficSummary({
-      period_type: 'hourly',
-      period_start: periodStart.toISOString(),
-      zone: 'hormuz',
-      total_vessels: uniquePositions.length,
-      tanker_count: tankerCount,
-      lng_carrier_count: lngCount,
-      container_count: containerCount,
-      other_count: otherCount,
-      transiting_count: transitingCount,
-      stopped_count: stoppedCount,
-      u_turn_count: uTurnCount,
-      dark_vessel_count: darkCount,
-      eastbound_count: eastbound,
-      westbound_count: westbound,
-      avg_speed_knots: avgSpeed ? Math.round(avgSpeed * 10) / 10 : null,
-      estimated_crude_barrels: tankerCount * 2_000_000, // ~2M bbl per VLCC
-      estimated_lng_tonnes: lngCount * 70_000,
-      traffic_change_pct: null,
-      anomaly_flag: uTurnCount >= 3 || stoppedCount > uniquePositions.length * 0.3,
-      anomaly_description:
-        uTurnCount >= 3
-          ? `${uTurnCount} vessel u-turns detected`
-          : stoppedCount > uniquePositions.length * 0.3
-            ? `${stoppedCount} vessels stopped (${Math.round((stoppedCount / uniquePositions.length) * 100)}%)`
-            : null,
-    })
+    // Only upsert traffic summary if we collected data
+    // (avoids overwriting valid data on connection failure)
+    if (uniquePositions.length > 0) {
+      await upsertTrafficSummary({
+        period_type: 'hourly',
+        period_start: periodStart.toISOString(),
+        zone: 'hormuz',
+        total_vessels: uniquePositions.length,
+        tanker_count: tankerCount,
+        lng_carrier_count: lngCount,
+        container_count: containerCount,
+        other_count: otherCount,
+        transiting_count: transitingCount,
+        stopped_count: stoppedCount,
+        u_turn_count: uTurnCount,
+        dark_vessel_count: darkCount,
+        eastbound_count: eastbound,
+        westbound_count: westbound,
+        avg_speed_knots: avgSpeed ? Math.round(avgSpeed * 10) / 10 : null,
+        estimated_crude_barrels: tankerCount * 2_000_000,
+        estimated_lng_tonnes: lngCount * 70_000,
+        traffic_change_pct: null,
+        anomaly_flag: uTurnCount >= 3 || stoppedCount > uniquePositions.length * 0.3,
+        anomaly_description:
+          uTurnCount >= 3
+            ? `${uTurnCount} vessel u-turns detected`
+            : stoppedCount > uniquePositions.length * 0.3
+              ? `${stoppedCount} vessels stopped (${Math.round((stoppedCount / uniquePositions.length) * 100)}%)`
+              : null,
+      })
+    } else {
+      console.warn('[ingest-ais] No vessels collected — possible API key or connection issue. Skipping traffic summary to preserve existing data.')
+    }
 
     return NextResponse.json({
       success: upsertSuccess || uniquePositions.length === 0,

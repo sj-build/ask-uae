@@ -17,6 +17,9 @@ export interface TelegramMessage {
   text?: string
   entities?: TelegramMessageEntity[]
   reply_to_message?: TelegramMessage
+  forward_from?: TelegramUser
+  forward_from_chat?: TelegramChat
+  forward_date?: number
 }
 
 export interface TelegramUser {
