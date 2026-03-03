@@ -148,6 +148,8 @@ UAE에 대해 무엇이든 물어보세요!
     rateLimit: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
     notAllowed: '죄송합니다. 이 봇을 사용할 권한이 없습니다.',
     error: '죄송합니다. 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    errorTimeout: '⏱️ 뉴스 분석에 시간이 오래 걸립니다. 링크 없이 질문하거나 잠시 후 다시 시도해주세요.',
+    errorRateLimit: '⚠️ Anthropic API 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
     thinking: '🤔 답변을 생성하고 있습니다...',
   },
   en: {
@@ -191,6 +193,8 @@ Ask any question about UAE and I'll provide information.
     rateLimit: 'Too many requests. Please try again later.',
     notAllowed: 'Sorry, you are not authorized to use this bot.',
     error: 'Sorry, an error occurred. Please try again later.',
+    errorTimeout: '⏱️ News analysis is taking too long. Try asking without links or try again later.',
+    errorRateLimit: '⚠️ Anthropic API rate limit reached. Please try again shortly.',
     thinking: '🤔 Generating response...',
   },
 }
@@ -233,7 +237,7 @@ async function callAnthropicDirect(
       system: TELEGRAM_SYSTEM_PROMPT,
       messages: claudeMessages,
     },
-    { signal: AbortSignal.timeout(25000) }
+    { signal: AbortSignal.timeout(40000) }
   )
 
   const text = message.content.reduce<string>((acc, block) => {
@@ -360,8 +364,29 @@ export async function handleMessage(message: TelegramMessage): Promise<void> {
         urlContext || undefined
       )
     } catch (aiError) {
-      console.error('[handler] Claude API error:', aiError instanceof Error ? aiError.message : aiError)
-      await sendMessage(chatId, responses.error)
+      // Detailed error logging for diagnostics
+      const errMsg = aiError instanceof Error ? aiError.message : String(aiError)
+      const errStatus = aiError && typeof aiError === 'object' && 'status' in aiError ? (aiError as { status: number }).status : null
+      console.error('[handler] Claude API error:', {
+        message: errMsg,
+        status: errStatus,
+        name: aiError instanceof Error ? aiError.name : undefined,
+        hasUrls,
+        urlContextLen: urlContext.length,
+        historyLen: updatedSession.message_history.length,
+      })
+
+      // Differentiated error messages
+      const isTimeout = errMsg.includes('abort') || errMsg.includes('timeout') || errMsg.includes('Timeout') || (aiError instanceof DOMException && aiError.name === 'TimeoutError')
+      const isRateLimitError = errStatus === 429
+
+      if (isTimeout) {
+        await sendMessage(chatId, responses.errorTimeout)
+      } else if (isRateLimitError) {
+        await sendMessage(chatId, responses.errorRateLimit)
+      } else {
+        await sendMessage(chatId, responses.error)
+      }
       return
     }
 
