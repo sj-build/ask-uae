@@ -39,14 +39,6 @@
     {
       "path": "/api/hormuz/ingest-shipping",
       "schedule": "40 */6 * * *"
-    },
-    {
-      "path": "/api/hormuz/evaluate-alerts",
-      "schedule": "50 */6 * * *"
-    },
-    {
-      "path": "/api/hormuz/scenario-agent",
-      "schedule": "55 */6 * * *"
     }
   ]
 }
