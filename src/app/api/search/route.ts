@@ -219,106 +219,87 @@ export async function POST(request: Request): Promise<Response> {
     const shouldEcommerceSearch = isFirstQuery && needsEcommerceSearch(query)
     const brandName = extractBrandName(query)
 
-    // Build enhanced context (parallel fetching)
-    let webSearchResults = ''
-    let ecommerceResults = ''
-    let ragContext = ''
-    let ragSources: SourceRef[] = []
-
-    if (isFirstQuery) {
-      const searchPromises: Promise<void>[] = []
-
-      // RAG: Try vector search first, fallback to keyword search
-      searchPromises.push(
-        (async () => {
-          try {
-            if (isEmbeddingConfigured()) {
-              const { embedding } = await generateEmbedding(query)
-              const vectorResult = await searchRelevantSourcesVector(embedding, {
-                limit: 8,
-                threshold: 0.65,
-              })
-
-              if (vectorResult.sources.length > 0) {
-                ragSources = vectorResult.sources
-                ragContext = vectorResult.context
-                return
-              }
-            }
-          } catch (e) {
-            console.warn('Vector RAG search failed, falling back to keyword:', e)
-          }
-
-          const { sources, context } = await searchRelevantSourcesV2(query, 8)
-          ragSources = sources
-          ragContext = context
-        })().catch((e) => {
-          console.warn('RAG search failed:', e)
-        })
-      )
-
-      // ALWAYS run web search — DB may not have enough coverage
-      searchPromises.push(
-        searchUAE(query, 5).then((results) => {
-          webSearchResults = formatGoogleResults(results)
-        }).catch(() => {
-          // Silently fail
-        })
-      )
-
-      if (shouldEcommerceSearch) {
-        searchPromises.push(
-          buildEcommerceContext(query, brandName || undefined).then((results) => {
-            ecommerceResults = results
-          }).catch(() => {
-            // Silently fail
-          })
-        )
-      }
-
-      await Promise.all(searchPromises)
-    }
-
-    // Use enhanced prompt if we have additional context
-    const combinedContext = [ragContext, webSearchResults, ecommerceResults].filter(Boolean).join('\n\n')
-    const systemPrompt = combinedContext
-      ? createEnhancedPrompt(combinedContext || undefined, undefined)
-      : SEARCH_SYSTEM_PROMPT
-
-    // Build messages array for Claude
-    // For follow-up questions, we need to convert HTML responses to plain text
-    const claudeMessages = conversationHistory.map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.role === 'assistant'
-        ? stripHtml(m.content)  // Convert HTML to plain text for context
-        : m.content,
-    }))
-
-    // Add current query
-    claudeMessages.push({
-      role: 'user' as const,
-      content: query,
-    })
-
     const newTurnCount = turnCount + 1
     const limitReached = newTurnCount >= CONVERSATION_LIMITS.MAX_TURNS
 
-    // Streaming response
-    if (useStreaming) {
-      const stream = await client.messages.stream({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        system: systemPrompt,
-        messages: claudeMessages,
-      })
+    // Helper to run with timeout — context-building budget cap
+    const withBudget = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race<T>([
+        p,
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ])
 
+    // Streaming response — start IMMEDIATELY so gateway sees bytes,
+    // then build context inside the stream. Avoids Vercel/edge proxy idle-timeout.
+    if (useStreaming) {
       const encoder = new TextEncoder()
-      let fullResponse = '' // Collect full response for UAE Memory
 
       const readableStream = new ReadableStream({
         async start(controller) {
+          let heartbeat: ReturnType<typeof setInterval> | null = null
+          let fullResponse = ''
+          let ragSources: SourceRef[] = []
+
           try {
-            // Send metadata first (including sources)
+            // Open SSE channel right away — flushes headers to client.
+            controller.enqueue(encoder.encode(`: open\n\n`))
+
+            // Heartbeat every 10s so intermediate proxies/browsers don't close
+            // the connection during long Claude generations.
+            heartbeat = setInterval(() => {
+              try { controller.enqueue(encoder.encode(`: ping\n\n`)) } catch {}
+            }, 10_000)
+
+            // ---- Build context with a hard budget (max ~15s) ----
+            let webSearchResults = ''
+            let ecommerceResults = ''
+            let ragContext = ''
+
+            if (isFirstQuery) {
+              const ragPromise = (async () => {
+                try {
+                  if (isEmbeddingConfigured()) {
+                    const { embedding } = await generateEmbedding(query)
+                    const vectorResult = await searchRelevantSourcesVector(embedding, {
+                      limit: 8,
+                      threshold: 0.65,
+                    })
+                    if (vectorResult.sources.length > 0) {
+                      ragSources = vectorResult.sources
+                      ragContext = vectorResult.context
+                      return
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Vector RAG failed, falling back:', e)
+                }
+                try {
+                  const { sources, context } = await searchRelevantSourcesV2(query, 8)
+                  ragSources = sources
+                  ragContext = context
+                } catch (e) {
+                  console.warn('Keyword RAG failed:', e)
+                }
+              })()
+
+              const webPromise = searchUAE(query, 5)
+                .then((r) => { webSearchResults = formatGoogleResults(r) })
+                .catch(() => {})
+
+              const promises: Promise<void>[] = [ragPromise, webPromise]
+              if (shouldEcommerceSearch) {
+                promises.push(
+                  buildEcommerceContext(query, brandName || undefined)
+                    .then((r) => { ecommerceResults = r })
+                    .catch(() => {})
+                )
+              }
+
+              // 15s budget — whatever we have, we proceed
+              await withBudget(Promise.all(promises).then(() => undefined), 15_000, undefined)
+            }
+
+            // Send metadata (sources may be empty if RAG didn't finish in time)
             const metadata = JSON.stringify({
               type: 'metadata',
               turnCount: newTurnCount,
@@ -326,6 +307,25 @@ export async function POST(request: Request): Promise<Response> {
               sources: ragSources,
             })
             controller.enqueue(encoder.encode(`data: ${metadata}\n\n`))
+
+            const combinedContext = [ragContext, webSearchResults, ecommerceResults]
+              .filter(Boolean).join('\n\n')
+            const systemPrompt = combinedContext
+              ? createEnhancedPrompt(combinedContext || undefined, undefined)
+              : SEARCH_SYSTEM_PROMPT
+
+            const claudeMessages = conversationHistory.map(m => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.role === 'assistant' ? stripHtml(m.content) : m.content,
+            }))
+            claudeMessages.push({ role: 'user' as const, content: query })
+
+            const stream = await client.messages.stream({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 4096,
+              system: systemPrompt,
+              messages: claudeMessages,
+            })
 
             // Stream the content
             let stopReason = 'end_turn'
@@ -347,6 +347,7 @@ export async function POST(request: Request): Promise<Response> {
               ? { type: 'done', truncated: true }
               : { type: 'done' }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(donePayload)}\n\n`))
+            if (heartbeat) { clearInterval(heartbeat); heartbeat = null }
             controller.close()
 
             // Save to UAE Memory + log after stream is closed (non-blocking)
@@ -362,8 +363,11 @@ export async function POST(request: Request): Promise<Response> {
             ])
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Stream error'
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
-            controller.close()
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`))
+            } catch {}
+            if (heartbeat) { clearInterval(heartbeat); heartbeat = null }
+            try { controller.close() } catch {}
           }
         },
       })
@@ -371,16 +375,72 @@ export async function POST(request: Request): Promise<Response> {
       return new Response(readableStream, {
         headers: {
           'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-transform',
           'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
         },
       })
     }
 
-    // Non-streaming response (fallback)
+    // ---- Non-streaming fallback ----
+    let webSearchResults = ''
+    let ecommerceResults = ''
+    let ragContext = ''
+    let ragSources: SourceRef[] = []
+
+    if (isFirstQuery) {
+      const ragPromise = (async () => {
+        try {
+          if (isEmbeddingConfigured()) {
+            const { embedding } = await generateEmbedding(query)
+            const vectorResult = await searchRelevantSourcesVector(embedding, {
+              limit: 8,
+              threshold: 0.65,
+            })
+            if (vectorResult.sources.length > 0) {
+              ragSources = vectorResult.sources
+              ragContext = vectorResult.context
+              return
+            }
+          }
+        } catch {}
+        try {
+          const { sources, context } = await searchRelevantSourcesV2(query, 8)
+          ragSources = sources
+          ragContext = context
+        } catch {}
+      })()
+
+      const webPromise = searchUAE(query, 5)
+        .then((r) => { webSearchResults = formatGoogleResults(r) })
+        .catch(() => {})
+
+      const promises: Promise<void>[] = [ragPromise, webPromise]
+      if (shouldEcommerceSearch) {
+        promises.push(
+          buildEcommerceContext(query, brandName || undefined)
+            .then((r) => { ecommerceResults = r })
+            .catch(() => {})
+        )
+      }
+      await withBudget(Promise.all(promises).then(() => undefined), 15_000, undefined)
+    }
+
+    const combinedContext = [ragContext, webSearchResults, ecommerceResults]
+      .filter(Boolean).join('\n\n')
+    const systemPrompt = combinedContext
+      ? createEnhancedPrompt(combinedContext || undefined, undefined)
+      : SEARCH_SYSTEM_PROMPT
+
+    const claudeMessages = conversationHistory.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.role === 'assistant' ? stripHtml(m.content) : m.content,
+    }))
+    claudeMessages.push({ role: 'user' as const, content: query })
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
+      max_tokens: 4096,
       system: systemPrompt,
       messages: claudeMessages,
     })

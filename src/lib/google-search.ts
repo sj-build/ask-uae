@@ -76,7 +76,8 @@ export async function performGoogleSearch(
 
     const url = `https://www.googleapis.com/customsearch/v1?${params.toString()}`
 
-    const response = await fetch(url)
+    // 8s timeout — 검색이 지연되어도 채팅 응답이 막히지 않도록 캡
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) })
 
     if (!response.ok) {
       console.error('Google Search API error:', response.status)
