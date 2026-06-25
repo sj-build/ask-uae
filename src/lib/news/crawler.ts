@@ -2,6 +2,15 @@ import type { NewsItem, NewsLane } from '@/types/news'
 
 const GOOGLE_NEWS_RSS_BASE = 'https://news.google.com/rss/search'
 const NAVER_NEWS_API_BASE = 'https://openapi.naver.com/v1/search/news.json'
+const EXA_API_URL = 'https://api.exa.ai/search'
+
+interface ExaResult {
+  readonly title: string
+  readonly url: string
+  readonly publishedDate: string | null
+  readonly text: string | null
+  readonly author?: string
+}
 
 function generateId(): string {
   return `news-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -372,6 +381,60 @@ export async function crawlGoogleNews(
       results.push(...newsItems)
     } catch {
       // Skip failed keyword crawls silently
+    }
+  }
+
+  return results
+}
+
+export async function crawlExaNews(
+  queries: readonly string[],
+  options: {
+    readonly resultCap?: number
+    readonly lane?: NewsLane
+  } = {},
+): Promise<readonly NewsItem[]> {
+  const apiKey = process.env.EXA_API_KEY
+  if (!apiKey) return []
+
+  const { resultCap = 5, lane } = options
+  const results: NewsItem[] = []
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+  for (const query of queries) {
+    try {
+      const res = await fetch(EXA_API_URL, {
+        method: 'POST',
+        headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          numResults: resultCap,
+          startPublishedDate: threeDaysAgo,
+          type: 'auto',
+          contents: { text: { maxCharacters: 300 } },
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) continue
+
+      const data: { results: readonly ExaResult[] } = await res.json()
+
+      const newsItems: readonly NewsItem[] = data.results.map((r) => ({
+        id: generateId(),
+        title: r.title ?? '',
+        url: r.url,
+        source: 'exa' as const,
+        publisher: r.author ?? new URL(r.url).hostname.replace('www.', ''),
+        publishedAt: r.publishedDate ? parseRssDate(r.publishedDate) : new Date().toISOString(),
+        tags: lane ? [query.slice(0, 40), `lane:${lane}`] : [query.slice(0, 40)],
+        summary: r.text?.slice(0, 300),
+        priority: 'other' as const,
+        ...(lane ? { lane } : {}),
+      }))
+
+      results.push(...newsItems)
+    } catch {
+      // Skip failed Exa queries silently
     }
   }
 

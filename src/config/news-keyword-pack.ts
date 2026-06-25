@@ -143,4 +143,26 @@ export const NEWS_KEYWORD_PACK = {
       ] as const,
     },
   },
+  // -----------------------------
+  // EN — Exa Semantic Search
+  // -----------------------------
+  exa_semantic_en: {
+    deal: {
+      always_on: [
+        'UAE Abu Dhabi venture capital investment deal startup funding 2025 2026',
+        'Mubadala ADIA ADQ sovereign wealth fund new investment acquisition',
+        'Dubai fintech crypto VARA regulation licensed exchange',
+      ] as const,
+    },
+    macro: {
+      always_on: [
+        'UAE economic policy reform diversification industrial strategy',
+      ] as const,
+    },
+    korea_uae: {
+      always_on: [
+        'Korea UAE partnership investment MOU business collaboration K-beauty',
+      ] as const,
+    },
+  },
 } as const

@@ -1,4 +1,4 @@
-export type NewsSource = 'google' | 'naver' | 'manual'
+export type NewsSource = 'google' | 'naver' | 'exa' | 'manual'
 export type NewsPriority = 'reuters' | 'bloomberg' | 'financial_times' | 'wsj' | 'the_national' | 'khaleej_times' | 'arab_news' | 'gulf_news' | 'wam' | 'other'
 
 export type NewsImpact = 'high' | 'medium' | 'low'

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { crawlGoogleNews, crawlNaverNews, enrichWithImages } from '@/lib/news/crawler'
+import { crawlGoogleNews, crawlNaverNews, crawlExaNews, enrichWithImages } from '@/lib/news/crawler'
 import { deduplicateNews } from '@/lib/news/deduplicator'
 import { tagNewsBatch } from '@/lib/news/tagger'
 import { filterNoise } from '@/lib/news/noise-filter'
@@ -39,46 +39,43 @@ export async function POST(request: Request): Promise<NextResponse> {
     let allItems: NewsItem[]
 
     if (useCustomQueries) {
-      // Custom queries: no lane tagging
-      const [googleResults, naverResults] = await Promise.allSettled([
+      const [googleResults, naverResults, exaResults] = await Promise.allSettled([
         crawlGoogleNews(customQueries),
         crawlNaverNews(customQueries),
+        crawlExaNews(customQueries),
       ])
 
       allItems = []
-      if (googleResults.status === 'fulfilled') {
-        allItems.push(...googleResults.value)
-      }
-      if (naverResults.status === 'fulfilled') {
-        allItems.push(...naverResults.value)
-      }
+      if (googleResults.status === 'fulfilled') allItems.push(...googleResults.value)
+      if (naverResults.status === 'fulfilled') allItems.push(...naverResults.value)
+      if (exaResults.status === 'fulfilled') allItems.push(...exaResults.value)
     } else {
-      // Default: use keyword pack with lane-based crawling
       const [
         googleDealResults,
         googleMacroResults,
         naverDealResults,
         naverMacroResults,
+        exaDealResults,
+        exaMacroResults,
+        exaKoreaResults,
       ] = await Promise.allSettled([
         crawlGoogleNews(NEWS_KEYWORD_PACK.google_news_rss_en.deal.always_on, { lane: 'deal', resultCap: 5 }),
         crawlGoogleNews(NEWS_KEYWORD_PACK.google_news_rss_en.macro.always_on, { lane: 'macro', resultCap: 3 }),
         crawlNaverNews(NEWS_KEYWORD_PACK.naver_search_ko.deal.always_on, { lane: 'deal', resultCap: 5 }),
         crawlNaverNews(NEWS_KEYWORD_PACK.naver_search_ko.macro.always_on, { lane: 'macro', resultCap: 3 }),
+        crawlExaNews(NEWS_KEYWORD_PACK.exa_semantic_en.deal.always_on, { lane: 'deal', resultCap: 3 }),
+        crawlExaNews(NEWS_KEYWORD_PACK.exa_semantic_en.macro.always_on, { lane: 'macro', resultCap: 3 }),
+        crawlExaNews(NEWS_KEYWORD_PACK.exa_semantic_en.korea_uae.always_on, { lane: 'korea_uae', resultCap: 3 }),
       ])
 
       allItems = []
-      if (googleDealResults.status === 'fulfilled') {
-        allItems.push(...googleDealResults.value)
-      }
-      if (googleMacroResults.status === 'fulfilled') {
-        allItems.push(...googleMacroResults.value)
-      }
-      if (naverDealResults.status === 'fulfilled') {
-        allItems.push(...naverDealResults.value)
-      }
-      if (naverMacroResults.status === 'fulfilled') {
-        allItems.push(...naverMacroResults.value)
-      }
+      if (googleDealResults.status === 'fulfilled') allItems.push(...googleDealResults.value)
+      if (googleMacroResults.status === 'fulfilled') allItems.push(...googleMacroResults.value)
+      if (naverDealResults.status === 'fulfilled') allItems.push(...naverDealResults.value)
+      if (naverMacroResults.status === 'fulfilled') allItems.push(...naverMacroResults.value)
+      if (exaDealResults.status === 'fulfilled') allItems.push(...exaDealResults.value)
+      if (exaMacroResults.status === 'fulfilled') allItems.push(...exaMacroResults.value)
+      if (exaKoreaResults.status === 'fulfilled') allItems.push(...exaKoreaResults.value)
     }
 
     if (allItems.length === 0) {
@@ -105,13 +102,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const googleCount = finalData.filter((item) => item.source === 'google').length
     const naverCount = finalData.filter((item) => item.source === 'naver').length
+    const exaCount = finalData.filter((item) => item.source === 'exa').length
 
     return NextResponse.json({
       success: true,
       data: finalData,
       meta: {
         total: tagged.length,
-        sources: { google: googleCount, naver: naverCount },
+        sources: { google: googleCount, naver: naverCount, exa: exaCount },
       },
     })
   } catch (error) {

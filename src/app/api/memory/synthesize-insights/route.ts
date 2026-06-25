@@ -127,7 +127,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const client = getAnthropicClient()
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
       system: SYNTHESIS_SYSTEM_PROMPT,
       messages: [

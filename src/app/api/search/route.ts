@@ -146,7 +146,7 @@ export async function POST(request: Request): Promise<Response> {
       })
 
       const stream = await client.messages.stream({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 8192,
         system: '이전 답변이 잘렸습니다. 중단된 부분부터 자연스럽게 이어서 작성해주세요. 같은 HTML 형식을 유지하세요.',
         messages: claudeMessages,
@@ -321,7 +321,7 @@ export async function POST(request: Request): Promise<Response> {
             claudeMessages.push({ role: 'user' as const, content: query })
 
             const stream = await client.messages.stream({
-              model: 'claude-sonnet-4-20250514',
+              model: 'claude-sonnet-4-5',
               max_tokens: 4096,
               system: systemPrompt,
               messages: claudeMessages,
@@ -439,7 +439,7 @@ export async function POST(request: Request): Promise<Response> {
     claudeMessages.push({ role: 'user' as const, content: query })
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
       system: systemPrompt,
       messages: claudeMessages,

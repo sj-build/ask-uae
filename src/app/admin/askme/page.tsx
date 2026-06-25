@@ -17,7 +17,7 @@ interface AiConfig {
 }
 
 const INITIAL_CONFIG: AiConfig = {
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-5',
   maxTokens: 4096,
   responseFormat: 'html',
 }

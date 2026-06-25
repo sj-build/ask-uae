@@ -422,7 +422,7 @@ export const AGENT_CONFIG: ScenarioAgentConfig = {
   scenarioChangeThreshold: 10,
   statusReportIntervalHours: 6,
   forceAnalysisIntervalMinutes: 60,
-  claudeModel: 'claude-sonnet-4-20250514',
+  claudeModel: 'claude-sonnet-4-5',
   claudeMaxTokens: 4096,
 }
 
