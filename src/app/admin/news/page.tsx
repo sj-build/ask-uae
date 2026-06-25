@@ -64,8 +64,9 @@ function sourceLabel(source: NewsSource): string {
     google: 'Google',
     naver: 'Naver',
     manual: 'Manual',
+    exa: 'Exa',
   }
-  return labels[source]
+  return labels[source] ?? source
 }
 
 function priorityColor(priority: NewsPriority): string {
